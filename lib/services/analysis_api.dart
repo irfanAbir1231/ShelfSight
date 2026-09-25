@@ -18,7 +18,7 @@ class AnalysisApi {
 
   static const String baseUrl = String.fromEnvironment(
     'SHELFSIGHT_API_URL',
-    defaultValue: 'http://127.0.0.1:8000',
+    defaultValue: 'https://shelfsight-api-lqqn.onrender.com',
   );
 
   final http.Client _client;
