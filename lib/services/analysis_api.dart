@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -27,25 +28,37 @@ class AnalysisApi {
     if (imagePaths.isEmpty) {
       throw const AnalysisApiException('At least one shelf photo is required.');
     }
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse('$baseUrl/v1/analyze'),
-    )..fields['audit_id'] = 'audit-${DateTime.now().millisecondsSinceEpoch}';
-
-    for (final path in imagePaths) {
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'images',
-          path,
-          contentType: _imageMediaType(path),
-        ),
-      );
-    }
 
     try {
+      // Render free services can be asleep when an audit starts. Wake the
+      // service first so cold-start time does not consume the analysis window.
+      final health = await _client
+          .get(Uri.parse('$baseUrl/health'))
+          .timeout(const Duration(seconds: 90));
+      if (health.statusCode < 200 || health.statusCode >= 300) {
+        throw AnalysisApiException(
+          'AI service is unavailable (${health.statusCode}). Please retry.',
+        );
+      }
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/v1/analyze'),
+      )..fields['audit_id'] = 'audit-${DateTime.now().millisecondsSinceEpoch}';
+
+      for (final path in imagePaths) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'images',
+            path,
+            contentType: _imageMediaType(path),
+          ),
+        );
+      }
+
       final streamed = await _client
           .send(request)
-          .timeout(const Duration(minutes: 2));
+          .timeout(const Duration(minutes: 5));
       final response = await http.Response.fromStream(streamed);
       if (response.statusCode < 200 || response.statusCode >= 300) {
         var message = 'Analysis failed (${response.statusCode}).';
@@ -61,6 +74,10 @@ class AnalysisApi {
     } on SocketException {
       throw const AnalysisApiException(
         'Cannot reach the AI service. Check that the server is running.',
+      );
+    } on TimeoutException {
+      throw const AnalysisApiException(
+        'The AI service is taking longer than expected. Please retry in a moment.',
       );
     } on HttpException catch (error) {
       throw AnalysisApiException(error.message);
