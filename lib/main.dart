@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/dashboard_screen.dart';
+import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() => runApp(const ShelfSightApp());
@@ -14,7 +14,7 @@ class ShelfSightApp extends StatelessWidget {
       title: 'ShelfSight',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: const DashboardScreen(),
+      home: const SplashScreen(),
     );
   }
 }

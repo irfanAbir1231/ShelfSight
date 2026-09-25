@@ -219,9 +219,12 @@ class _BrandHeader extends StatelessWidget {
           color: AppColors.navy,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Icon(
-          Icons.center_focus_strong_rounded,
-          color: Colors.white,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Image.asset(
+            'assets/branding/shelfsight-logo.png',
+            fit: BoxFit.cover,
+          ),
         ),
       ),
       const SizedBox(width: 12),

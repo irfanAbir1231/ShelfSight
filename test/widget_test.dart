@@ -10,12 +10,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shelfsight/main.dart';
 
 void main() {
-  testWidgets('opens directly on the dashboard without authentication', (
-    tester,
-  ) async {
-    await tester.pumpWidget(const ShelfSightApp());
-    expect(find.text('ShelfSight'), findsOneWidget);
-    expect(find.text('Start a new store visit'), findsOneWidget);
-    expect(find.text('Sign In'), findsNothing);
-  });
+  testWidgets(
+    'shows branded loading then opens dashboard without authentication',
+    (tester) async {
+      await tester.pumpWidget(const ShelfSightApp());
+      expect(find.text('ShelfSight'), findsOneWidget);
+      expect(find.text('Preparing your workspace'), findsOneWidget);
+      expect(find.text('Sign In'), findsNothing);
+
+      await tester.pump(const Duration(milliseconds: 1800));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Start a new store visit'), findsOneWidget);
+      expect(find.text('Sign In'), findsNothing);
+    },
+  );
 }
