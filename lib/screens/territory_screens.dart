@@ -59,11 +59,13 @@ class TerritoryDashboardScreen extends StatelessWidget {
                       ),
                     ),
                     SizedBox(width: 10),
-                    Padding(
-                      padding: EdgeInsets.only(bottom: 6),
-                      child: StatusPill(
-                        label: '+2.4 pts this week',
-                        icon: Icons.trending_up_rounded,
+                    Flexible(
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: 6),
+                        child: StatusPill(
+                          label: '+2.4 pts this week',
+                          icon: Icons.trending_up_rounded,
+                        ),
                       ),
                     ),
                   ],

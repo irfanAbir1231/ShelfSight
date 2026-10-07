@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/session.dart';
@@ -5,8 +7,13 @@ import '../theme/app_theme.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/shell_widgets.dart';
 import '../widgets/street_map.dart';
-import 'capture_screen.dart';
+import 'shop_details_screen.dart';
+import 'visit_screens.dart';
 
+enum _Phase { overview, locating, found }
+
+/// Sales Officer home: map overview, camera fly-to, shop detection sheet,
+/// geofence states and an assigned-shops list.
 class SalesHomeScreen extends StatefulWidget {
   const SalesHomeScreen({super.key, required this.session});
   final UserSession session;
@@ -17,46 +24,103 @@ class SalesHomeScreen extends StatefulWidget {
 
 class _SalesHomeScreenState extends State<SalesHomeScreen> {
   final _mapKey = GlobalKey<StreetMapState>();
-  late final ({Shop shop, double meters})? _detected = DemoData.detect(
-    DemoData.userLat,
-    DemoData.userLng,
-  );
-  Shop? _selected;
+  final _sheet = DraggableScrollableController();
+  final _search = TextEditingController();
 
-  Shop? get _active => _selected ?? _detected?.shop;
-  bool get _atActiveShop => _active != null && _active!.id == _detected?.shop.id;
+  _Phase _phase = _Phase.overview;
+  DemoLocation _loc = DemoLocation.insideShop;
+  bool _listMode = false;
+  bool _dismissed = false;
+  String _query = '';
+  Timer? _timer;
 
-  double? get _activeMeters => _active == null
-      ? null
-      : distanceMeters(
-          DemoData.userLat,
-          DemoData.userLng,
-          _active!.lat,
-          _active!.lng,
-        );
+  double get _lat => DemoData.locationFor(_loc).$1;
+  double get _lng => DemoData.locationFor(_loc).$2;
 
-  void _openCategory(ProductCategory c) {
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    if (!c.active) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('${c.name} analysis is coming soon.')),
-      );
-      return;
-    }
-    if (!_atActiveShop) {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Go to the shop to start. Visits need GPS match.'),
+  /// Nearest assigned shop to the current GPS fix.
+  Shop get _target {
+    final sorted = [...DemoData.shops]
+      ..sort(
+        (a, b) => DemoData.distanceTo(a, _lat, _lng).compareTo(
+          DemoData.distanceTo(b, _lat, _lng),
         ),
       );
-      return;
-    }
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => CaptureScreen(storeName: _active!.name),
-      ),
+    return sorted.first;
+  }
+
+  bool get _inside => DemoData.insideGeofence(_target, _lat, _lng);
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(const Duration(milliseconds: 1100), _locate);
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _sheet.dispose();
+    _search.dispose();
+    super.dispose();
+  }
+
+  Future<void> _locate() async {
+    if (!mounted) return;
+    setState(() => _phase = _Phase.locating);
+    await _mapKey.currentState?.flyTo(_lat, _lng);
+    if (mounted) setState(() => _phase = _Phase.found);
+  }
+
+  Future<void> _setLocation(DemoLocation loc) async {
+    if (loc == _loc) return;
+    setState(() {
+      _loc = loc;
+      _dismissed = false;
+    });
+    await _mapKey.currentState?.flyTo(
+      _lat,
+      _lng,
+      scale: 1.6,
+      duration: const Duration(milliseconds: 900),
     );
+  }
+
+  void _expandSheet() => _sheet.animateTo(
+    .68,
+    duration: const Duration(milliseconds: 280),
+    curve: Curves.easeOut,
+  );
+
+  void _startVisit() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => VisitOverviewScreen(shop: _target)),
+    );
+  }
+
+  void _details(Shop s) => Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => ShopDetailsScreen(shop: s)),
+  );
+
+  void _notMyShop() {
+    setState(() {
+      _dismissed = true;
+      _listMode = true;
+    });
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('Pick your shop from the assigned list.')),
+      );
+  }
+
+  void _directions() {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Directions need a maps app, not connected in demo.'),
+        ),
+      );
   }
 
   @override
@@ -64,151 +128,171 @@ class _SalesHomeScreenState extends State<SalesHomeScreen> {
     final top = ShelfSightHeader.totalHeight(context);
     final navH = FloatingGlassNav.totalHeight(context);
     final screenH = MediaQuery.sizeOf(context).height;
+    final visited = visitedToday.value.length;
+    final showSheet = _phase == _Phase.found && !_listMode && !_dismissed;
     return Stack(
       children: [
         Positioned.fill(
           child: StreetMap(
             key: _mapKey,
             shops: DemoData.shops,
-            detectedShopId: _detected?.shop.id,
-            selectedShopId: _selected?.id,
-            topInset: top,
-            bottomInset: screenH * .42,
-            onShopTap: (s) => setState(() => _selected = s),
+            userLat: _lat,
+            userLng: _lng,
+            activeShopId: _phase == _Phase.found && _inside && !_dismissed
+                ? _target.id
+                : null,
+            selectedShopId: _phase == _Phase.found && !_dismissed
+                ? _target.id
+                : null,
+            topInset: top + 56,
+            bottomInset: showSheet ? screenH * .36 : navH,
+            onShopTap: _details,
           ),
         ),
-        // OSM attribution, unobtrusive.
-        Positioned(
-          left: 10,
-          top: top + 6,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .75),
-              borderRadius: BorderRadius.circular(6),
+        if (_listMode)
+          Positioned.fill(
+            child: _ShopList(
+              top: top + 64,
+              bottom: navH + 12,
+              query: _query,
+              controller: _search,
+              onQuery: (v) => setState(() => _query = v),
+              lat: _lat,
+              lng: _lng,
+              onOpen: _details,
             ),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              child: Text(
-                '© OpenStreetMap contributors',
-                style: TextStyle(fontSize: 10, color: Color(0xFF475569)),
+          ),
+        // Today progress + Map/List toggle.
+        Positioned(
+          left: 12,
+          right: 12,
+          top: top + 8,
+          child: GlassSurface(
+            borderRadius: BorderRadius.circular(18),
+            color: Colors.white.withValues(alpha: .8),
+            borderColor: Colors.white,
+            blur: 16,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Today · $visited of ${DemoData.shops.length} shops visited',
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(3),
+                          child: LinearProgressIndicator(
+                            value: visited / DemoData.shops.length,
+                            minHeight: 6,
+                            backgroundColor: AppColors.border,
+                            color: AppColors.emerald,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  _ModeToggle(
+                    list: _listMode,
+                    onChanged: (v) => setState(() => _listMode = v),
+                  ),
+                ],
               ),
             ),
           ),
         ),
-        Positioned(
-          right: 12,
-          top: top + 6,
-          child: Material(
-            color: Colors.white,
-            elevation: 3,
-            shape: const CircleBorder(),
-            child: IconButton(
-              tooltip: 'Recenter on my location',
-              onPressed: () =>
-                  _mapKey.currentState?.recenter(MediaQuery.sizeOf(context)),
-              icon: const Icon(Icons.my_location_rounded, color: AppColors.navy),
+        if (!_listMode) ...[
+          Positioned(
+            left: 12,
+            top: top + 76,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .8),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                child: Text(
+                  '© OpenStreetMap contributors',
+                  style: TextStyle(fontSize: 10.5, color: Color(0xFF475569)),
+                ),
+              ),
             ),
           ),
-        ),
-        DraggableScrollableSheet(
-          initialChildSize: .40,
-          minChildSize: .22,
-          maxChildSize: .86,
-          snap: true,
-          snapSizes: const [.22, .40, .86],
-          builder: (context, controller) => DecoratedBox(
-            decoration: const BoxDecoration(
-              color: AppColors.canvas,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0x330B1426),
-                  blurRadius: 24,
-                  offset: Offset(0, -6),
+          Positioned(
+            right: 12,
+            top: top + 76,
+            child: Material(
+              color: Colors.white,
+              elevation: 3,
+              shape: const CircleBorder(),
+              child: IconButton(
+                tooltip: 'Recenter on my location',
+                style: IconButton.styleFrom(minimumSize: const Size(52, 52)),
+                onPressed: () => _mapKey.currentState?.flyToUser(),
+                icon: const Icon(
+                  Icons.my_location_rounded,
+                  color: AppColors.navy,
                 ),
-              ],
-            ),
-            child: ListView(
-              controller: controller,
-              padding: EdgeInsets.fromLTRB(16, 10, 16, navH + 12),
-              children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: AppColors.border,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                _ShopStatusCard(
-                  shop: _active,
-                  meters: _activeMeters,
-                  atShop: _atActiveShop,
-                ),
-                const SizedBox(height: 22),
-                const Text(
-                  'Product category',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -.3,
-                    color: AppColors.ink,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: 1.75,
-                  children: [
-                    for (final c in productCategories)
-                      _CategoryTile(
-                        category: c,
-                        enabled: c.active && _atActiveShop,
-                        onTap: () => _openCategory(c),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 22),
-                const Text(
-                  'Assigned shops',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -.3,
-                    color: AppColors.ink,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                for (final s in DemoData.shops)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _ShopRow(
-                      shop: s,
-                      detected: s.id == _detected?.shop.id,
-                      selected: s.id == _active?.id,
-                      onTap: () => setState(() => _selected = s),
-                    ),
-                  ),
-              ],
+              ),
             ),
           ),
-        ),
+          if (_phase == _Phase.locating)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: navH + 16,
+              child: const Center(
+                child: StatusPill(
+                  label: 'Finding your location…',
+                  icon: Icons.gps_fixed_rounded,
+                  color: AppColors.ink,
+                  background: Colors.white,
+                ),
+              ),
+            ),
+        ],
+        if (showSheet)
+          DraggableScrollableSheet(
+            controller: _sheet,
+            initialChildSize: .30,
+            minChildSize: .30,
+            maxChildSize: .68,
+            snap: true,
+            snapSizes: const [.30, .68],
+            builder: (context, scroll) => _DetectionSheet(
+              scroll: scroll,
+              shop: _target,
+              meters: DemoData.distanceTo(_target, _lat, _lng),
+              inside: _inside,
+              loc: _loc,
+              navHeight: navH,
+              onExpand: _expandSheet,
+              onStart: _startVisit,
+              onDetails: () => _details(_target),
+              onNotMine: _notMyShop,
+              onDirections: _directions,
+              onLocation: _setLocation,
+            ),
+          ),
         Positioned(
           top: 0,
           left: 0,
           right: 0,
           child: ShelfSightHeader(
-            title: 'Hi, ${widget.session.name.split(' ').first}',
-            subtitle:
-                '${widget.session.territory} · ${DemoData.shops.length} shops',
-            alertCount: 2,
+            title: 'Good morning, ${widget.session.firstName}',
+            subtitle: '${DemoData.shops.length} assigned shops',
+            unreadDot: true,
           ),
         ),
       ],
@@ -216,101 +300,437 @@ class _SalesHomeScreenState extends State<SalesHomeScreen> {
   }
 }
 
-class _ShopStatusCard extends StatelessWidget {
-  const _ShopStatusCard({
-    required this.shop,
-    required this.meters,
-    required this.atShop,
-  });
-  final Shop? shop;
-  final double? meters;
-  final bool atShop;
+class _ModeToggle extends StatelessWidget {
+  const _ModeToggle({required this.list, required this.onChanged});
+  final bool list;
+  final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    if (shop == null) {
-      return const SurfaceCard(
-        borderColor: AppColors.amber,
-        color: AppColors.amberSoft,
+    Widget seg(String label, IconData icon, bool selected, bool toList) =>
+        Semantics(
+          button: true,
+          selected: selected,
+          label: label,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => onChanged(toList),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 44, minWidth: 48),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: selected ? AppColors.navy : Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    icon,
+                    size: 18,
+                    color: selected ? Colors.white : AppColors.ink,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: selected ? Colors.white : AppColors.ink,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(2),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.location_searching_rounded, color: Color(0xFF92580A)),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'No assigned shop nearby. Move closer or tap a shop on the map.',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF92580A),
+            seg('Map', Icons.map_outlined, !list, false),
+            seg('List', Icons.view_list_rounded, list, true),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DetectionSheet extends StatelessWidget {
+  const _DetectionSheet({
+    required this.scroll,
+    required this.shop,
+    required this.meters,
+    required this.inside,
+    required this.loc,
+    required this.navHeight,
+    required this.onExpand,
+    required this.onStart,
+    required this.onDetails,
+    required this.onNotMine,
+    required this.onDirections,
+    required this.onLocation,
+  });
+
+  final ScrollController scroll;
+  final Shop shop;
+  final double meters;
+  final bool inside;
+  final DemoLocation loc;
+  final double navHeight;
+  final VoidCallback onExpand;
+  final VoidCallback onStart;
+  final VoidCallback onDetails;
+  final VoidCallback onNotMine;
+  final VoidCallback onDirections;
+  final ValueChanged<DemoLocation> onLocation;
+
+  @override
+  Widget build(BuildContext context) {
+    final distance = formatDistance(meters);
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x330B1426),
+            blurRadius: 24,
+            offset: Offset(0, -6),
+          ),
+        ],
+      ),
+      child: GlassSurface(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+        color: Colors.white.withValues(alpha: .86),
+        borderColor: Colors.white,
+        blur: 26,
+        child: ListView(
+          controller: scroll,
+          padding: EdgeInsets.fromLTRB(18, 10, 18, navHeight + 16),
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(3),
                 ),
               ),
             ),
-          ],
-        ),
-      );
-    }
-    final m = meters!.round();
-    return SurfaceCard(
-      color: atShop ? AppColors.mint : Colors.white,
-      borderColor: atShop ? AppColors.emerald : AppColors.border,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: atShop ? AppColors.emerald : AppColors.navy,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  Icons.storefront_rounded,
-                  color: atShop ? AppColors.navy : Colors.white,
-                ),
+            const SizedBox(height: 14),
+            InkWell(
+              onTap: onExpand,
+              borderRadius: BorderRadius.circular(12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: inside ? AppColors.emerald : AppColors.amberSoft,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      inside
+                          ? Icons.my_location_rounded
+                          : Icons.near_me_outlined,
+                      color: inside ? AppColors.navy : const Color(0xFF92580A),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          inside
+                              ? 'We found your current shop'
+                              : 'Nearest assigned shop',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.inkMuted,
+                          ),
+                        ),
+                        Text(
+                          shop.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            height: 1.2,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -.3,
+                            color: AppColors.ink,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '$distance away',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: inside
+                          ? AppColors.emeraldDark
+                          : const Color(0xFF92580A),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      shop!.name,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.ink,
-                      ),
-                    ),
-                    Text(
-                      shop!.area,
-                      style: const TextStyle(
-                        color: AppColors.inkMuted,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              shop.address,
+              style: const TextStyle(fontSize: 14.5, color: AppColors.inkMuted),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (inside)
+                  const StatusPill(
+                    label: 'Inside shop area',
+                    icon: Icons.check_circle_rounded,
+                  )
+                else
+                  const StatusPill(
+                    label: 'You are outside the shop area',
+                    icon: Icons.warning_amber_rounded,
+                    color: Color(0xFF92580A),
+                    background: AppColors.amberSoft,
+                  ),
+                StatusPill(
+                  label: distance,
+                  icon: Icons.straighten_rounded,
+                  color: AppColors.ink,
+                  background: AppColors.surfaceAlt,
                 ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                const Icon(
+                  Icons.history_rounded,
+                  size: 18,
+                  color: AppColors.inkMuted,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Last visit: ${shop.lastVisit}',
+                    style: const TextStyle(
+                      fontSize: 14.5,
+                      color: AppColors.ink,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            PrimaryButton(
+              label: 'Start shop visit',
+              icon: Icons.play_arrow_rounded,
+              onPressed: inside ? onStart : null,
+            ),
+            if (!inside) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    size: 18,
+                    color: Color(0xFF92580A),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Move within ${DemoData.geofenceMeters.round()} meters of the shop to begin',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF92580A),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 52,
+              child: OutlinedButton.icon(
+                onPressed: inside ? onDetails : onDirections,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.navy,
+                  side: const BorderSide(color: AppColors.navy, width: 1.5),
+                  shape: const StadiumBorder(),
+                ),
+                icon: Icon(
+                  inside ? Icons.storefront_outlined : Icons.directions_rounded,
+                ),
+                label: Text(
+                  inside ? 'View shop details' : 'Get directions',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+            Center(
+              child: TextButton(
+                onPressed: onNotMine,
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  foregroundColor: AppColors.inkMuted,
+                ),
+                child: const Text(
+                  'This is not my shop',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            _DemoLocationOption(loc: loc, onChanged: onLocation),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Subtle testing-only control for simulating GPS.
+class _DemoLocationOption extends StatelessWidget {
+  const _DemoLocationOption({required this.loc, required this.onChanged});
+  final DemoLocation loc;
+  final ValueChanged<DemoLocation> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.science_outlined, size: 16, color: AppColors.inkMuted),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Demo location · testing only',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.inkMuted,
+              ),
+            ),
           ),
-          const SizedBox(height: 12),
-          if (atShop)
-            StatusPill(
-              label: 'Shop detected · GPS ±$m m',
-              icon: Icons.check_circle_rounded,
-              color: AppColors.emeraldDark,
-              background: Colors.white,
-            )
-          else
-            StatusPill(
-              label: m >= 1000
-                  ? 'Not here · ${(m / 1000).toStringAsFixed(1)} km away'
-                  : 'Not here · $m m away',
-              icon: Icons.near_me_outlined,
-              color: const Color(0xFF92580A),
-              background: AppColors.amberSoft,
+          SegmentedButton<DemoLocation>(
+            showSelectedIcon: false,
+            style: SegmentedButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              minimumSize: const Size(48, 40),
+              textStyle: const TextStyle(fontSize: 12.5),
+              selectedBackgroundColor: AppColors.navy,
+              selectedForegroundColor: Colors.white,
+            ),
+            segments: const [
+              ButtonSegment(
+                value: DemoLocation.insideShop,
+                label: Text('At shop'),
+              ),
+              ButtonSegment(
+                value: DemoLocation.outsideShop,
+                label: Text('Away'),
+              ),
+            ],
+            selected: {loc},
+            onSelectionChanged: (s) => onChanged(s.first),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShopList extends StatelessWidget {
+  const _ShopList({
+    required this.top,
+    required this.bottom,
+    required this.query,
+    required this.controller,
+    required this.onQuery,
+    required this.lat,
+    required this.lng,
+    required this.onOpen,
+  });
+  final double top;
+  final double bottom;
+  final String query;
+  final TextEditingController controller;
+  final ValueChanged<String> onQuery;
+  final double lat;
+  final double lng;
+  final ValueChanged<Shop> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final shops =
+        DemoData.shops
+            .where((s) => s.name.toLowerCase().contains(query.toLowerCase()))
+            .toList()
+          ..sort(
+            (a, b) => DemoData.distanceTo(a, lat, lng).compareTo(
+              DemoData.distanceTo(b, lat, lng),
+            ),
+          );
+    return ColoredBox(
+      color: AppColors.canvas,
+      child: ListView(
+        padding: EdgeInsets.fromLTRB(16, top, 16, bottom),
+        children: [
+          TextField(
+            controller: controller,
+            onChanged: onQuery,
+            decoration: const InputDecoration(
+              hintText: 'Search assigned shops',
+              prefixIcon: Icon(Icons.search_rounded),
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (shops.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Center(child: Text('No shops match your search.')),
+            ),
+          for (final s in shops)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _ShopCard(
+                shop: s,
+                meters: DemoData.distanceTo(s, lat, lng),
+                onTap: () => onOpen(s),
+              ),
             ),
         ],
       ),
@@ -318,143 +738,85 @@ class _ShopStatusCard extends StatelessWidget {
   }
 }
 
-class _CategoryTile extends StatelessWidget {
-  const _CategoryTile({
-    required this.category,
-    required this.enabled,
-    required this.onTap,
-  });
-  final ProductCategory category;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  static const _icons = {
-    'Soap': Icons.clean_hands_rounded,
-    'Shampoo': Icons.water_drop_outlined,
-    'Toothpaste': Icons.brush_outlined,
-    'Detergent': Icons.local_laundry_service_outlined,
-    'Dishwashing Liquid': Icons.wash_outlined,
-    'Toilet Cleaner': Icons.cleaning_services_outlined,
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final active = category.active;
-    return Semantics(
-      button: true,
-      label: '${category.name}, ${active ? 'active' : 'coming soon'}',
-      excludeSemantics: true,
-      child: SurfaceCard(
-        onTap: onTap,
-        padding: const EdgeInsets.all(12),
-        color: active ? Colors.white : AppColors.surfaceAlt,
-        borderColor: active ? AppColors.emeraldDark : AppColors.border,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  _icons[category.name],
-                  color: active ? AppColors.emeraldDark : AppColors.inkMuted,
-                ),
-                const Spacer(),
-                if (active)
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    size: 18,
-                    color: AppColors.emeraldDark,
-                  )
-                else
-                  const Icon(
-                    Icons.lock_outline_rounded,
-                    size: 16,
-                    color: AppColors.inkMuted,
-                  ),
-              ],
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  category.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14.5,
-                    color: active ? AppColors.ink : AppColors.inkMuted,
-                  ),
-                ),
-                Text(
-                  active ? 'Active' : 'Coming soon',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: active ? AppColors.emeraldDark : AppColors.inkMuted,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ShopRow extends StatelessWidget {
-  const _ShopRow({
+class _ShopCard extends StatelessWidget {
+  const _ShopCard({
     required this.shop,
-    required this.detected,
-    required this.selected,
+    required this.meters,
     required this.onTap,
   });
   final Shop shop;
-  final bool detected;
-  final bool selected;
+  final double meters;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final here = meters <= DemoData.geofenceMeters;
+    final done = visitedToday.value.contains(shop.id);
+    final String status;
+    final IconData icon;
+    if (done) {
+      status = 'Visited today';
+      icon = Icons.check_circle_rounded;
+    } else if (here) {
+      status = 'Ready to visit';
+      icon = Icons.play_circle_outline_rounded;
+    } else {
+      status = '${formatDistance(meters)} away';
+      icon = Icons.near_me_outlined;
+    }
     return SurfaceCard(
       onTap: onTap,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      borderColor: selected ? AppColors.emeraldDark : AppColors.border,
-      child: Row(
+      borderColor: here ? AppColors.emeraldDark : AppColors.border,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.storefront_rounded,
-            color: detected ? AppColors.emeraldDark : AppColors.navy,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+          Row(
+            children: [
+              Expanded(
+                child: Text(
                   shop.name,
                   style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
                     color: AppColors.ink,
                   ),
                 ),
-                Text(
-                  'Last visit: ${shop.lastVisit}',
-                  style: const TextStyle(
-                    color: AppColors.inkMuted,
-                    fontSize: 13,
-                  ),
+              ),
+              if (here)
+                const StatusPill(
+                  label: 'You are here',
+                  icon: Icons.my_location_rounded,
+                  color: AppColors.navy,
+                  background: AppColors.emerald,
                 ),
-              ],
-            ),
+            ],
           ),
-          if (detected)
-            const StatusPill(label: 'Here', icon: Icons.my_location_rounded)
-          else if (shop.visitedToday)
-            const StatusPill(label: 'Done', icon: Icons.check_rounded),
+          const SizedBox(height: 4),
+          Text(
+            shop.address,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 13.5, color: AppColors.inkMuted),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              StatusPill(
+                label: status,
+                icon: icon,
+                color: here || done ? AppColors.emeraldDark : AppColors.ink,
+                background: here || done ? AppColors.mint : AppColors.surfaceAlt,
+              ),
+              StatusPill(
+                label: done ? 'Soap audited' : 'Soap pending',
+                icon: Icons.clean_hands_rounded,
+                color: AppColors.ink,
+                background: AppColors.surfaceAlt,
+              ),
+            ],
+          ),
         ],
       ),
     );

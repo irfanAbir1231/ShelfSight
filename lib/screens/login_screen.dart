@@ -130,7 +130,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       Spacer(),
-                      OnboardingProgress(step: 1, total: 2, onDark: true),
+                      OnboardingProgress(
+                        step: 1,
+                        total: 2,
+                        onDark: true,
+                        showLabel: false,
+                      ),
                     ],
                   ),
                 ),
@@ -301,11 +306,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                   color: AppColors.inkMuted,
                                 ),
                                 SizedBox(width: 6),
-                                Text(
-                                  'Secure, encrypted connection',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: AppColors.inkMuted,
+                                Flexible(
+                                  child: Text(
+                                    'Secure, encrypted connection',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.inkMuted,
+                                    ),
                                   ),
                                 ),
                               ],

@@ -110,7 +110,9 @@ class OnboardingProgress extends StatelessWidget {
     required this.step,
     required this.total,
     this.onDark = false,
+    this.showLabel = true,
   });
+  final bool showLabel;
   final int step; // 1-based
   final int total;
   final bool onDark;
@@ -135,15 +137,16 @@ class OnboardingProgress extends StatelessWidget {
                     : (onDark ? Colors.white24 : AppColors.border),
               ),
             ),
-          const SizedBox(width: 6),
-          Text(
-            'Step $step of $total',
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: onDark ? const Color(0xFFB6C2D4) : AppColors.inkMuted,
+          if (showLabel) const SizedBox(width: 6),
+          if (showLabel)
+            Text(
+              'Step $step of $total',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: onDark ? const Color(0xFFB6C2D4) : AppColors.inkMuted,
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -186,7 +189,10 @@ class _EmeraldLoaderState extends State<EmeraldLoader>
                 width: 6,
                 height:
                     10 +
-                    14 * math.pow(math.sin((_c.value - i * .15) * math.pi), 2).toDouble(),
+                    14 *
+                        math
+                            .pow(math.sin((_c.value - i * .15) * math.pi), 2)
+                            .toDouble(),
                 decoration: BoxDecoration(
                   color: AppColors.emerald,
                   borderRadius: BorderRadius.circular(3),
@@ -335,9 +341,21 @@ class _MiniMapPainter extends CustomPainter {
       ..strokeWidth = 12
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
-    canvas.drawLine(Offset(0, size.height * .62), Offset(size.width, size.height * .5), road);
-    canvas.drawLine(Offset(size.width * .3, 0), Offset(size.width * .38, size.height), road);
-    canvas.drawLine(Offset(size.width * .75, 0), Offset(size.width * .68, size.height), road);
+    canvas.drawLine(
+      Offset(0, size.height * .62),
+      Offset(size.width, size.height * .5),
+      road,
+    );
+    canvas.drawLine(
+      Offset(size.width * .3, 0),
+      Offset(size.width * .38, size.height),
+      road,
+    );
+    canvas.drawLine(
+      Offset(size.width * .75, 0),
+      Offset(size.width * .68, size.height),
+      road,
+    );
   }
 
   @override

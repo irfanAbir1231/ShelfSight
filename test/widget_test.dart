@@ -3,6 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shelfsight/main.dart';
 
 Future<void> signIn(WidgetTester tester, String id) async {
+  tester.view.physicalSize = const Size(390, 844);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
   await tester.pumpWidget(const ShelfSightApp());
   await tester.pump(const Duration(milliseconds: 2300));
   await tester.pump(const Duration(milliseconds: 600));
@@ -27,21 +30,44 @@ void main() {
     expect(find.text('Welcome back'), findsOneWidget);
     expect(find.text('SO-1001'), findsOneWidget);
 
-    await tester.enterText(find.byType(EditableText).at(0), 'SO-1042');
+    await tester.enterText(find.byType(EditableText).at(0), 'SO-1001');
     await tester.enterText(find.byType(EditableText).at(1), 'wrong');
     await tester.tap(find.text('Sign in').last);
     await tester.pump(const Duration(milliseconds: 700));
     expect(find.text('Employee ID or password is incorrect'), findsOneWidget);
   });
 
-  testWidgets('sales officer sees map home and sales nav', (tester) async {
-    await signIn(tester, 'SO-1042');
+  testWidgets('sales officer: home, detection, start visit, categories', (
+    tester,
+  ) async {
+    await signIn(tester, 'SO-1001');
+    expect(find.text('Good morning, Arif'), findsOneWidget);
+    expect(find.text('5 assigned shops'), findsOneWidget);
     expect(find.text('Visits'), findsOneWidget);
-    expect(find.text('Learn'), findsOneWidget);
     expect(find.text('Alerts'), findsNothing);
     expect(find.text('© OpenStreetMap contributors'), findsOneWidget);
-    expect(find.text('Soap'), findsOneWidget);
-    expect(find.textContaining('Shop detected · GPS'), findsOneWidget);
+    expect(find.textContaining('0 of 5 shops visited'), findsOneWidget);
+
+    // Camera fly-to finishes, detection sheet shows.
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.text('We found your current shop'), findsOneWidget);
+    expect(find.text('Samson Center Demo Outlet'), findsOneWidget);
+
+    await tester.drag(find.text('We found your current shop'), const Offset(0, -400));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.tap(find.text('Start shop visit'));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('Visit active'), findsOneWidget);
+    await tester.tap(find.text('Select product category'));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('Choose a product category'), findsOneWidget);
+    await tester.tap(find.text('Shampoo'));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('Analysis coming soon'), findsOneWidget);
   });
 
   testWidgets('territory officer sees dashboard with company shares', (

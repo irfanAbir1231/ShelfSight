@@ -14,6 +14,8 @@ class ShelfSightHeader extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.alertCount = 0,
+    this.unreadDot = false,
+    this.onBack,
   });
 
   static const double height = 68;
@@ -22,6 +24,8 @@ class ShelfSightHeader extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
   final int alertCount;
+  final bool unreadDot;
+  final VoidCallback? onBack;
 
   /// Total height including the status bar, for scroll-content top padding.
   static double totalHeight(BuildContext context) =>
@@ -41,6 +45,19 @@ class ShelfSightHeader extends StatelessWidget {
           height: height - 16,
           child: Row(
             children: [
+              if (onBack != null)
+                IconButton(
+                  tooltip: 'Back',
+                  onPressed: onBack,
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size(44, 48),
+                    padding: EdgeInsets.zero,
+                  ),
+                  icon: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: AppColors.ink,
+                  ),
+                ),
               Container(
                 width: 44,
                 height: 44,
@@ -106,8 +123,8 @@ class ShelfSightHeader extends StatelessWidget {
                   backgroundColor: AppColors.surfaceAlt,
                 ),
                 icon: Badge(
-                  isLabelVisible: alertCount > 0,
-                  label: Text('$alertCount'),
+                  isLabelVisible: alertCount > 0 || unreadDot,
+                  label: alertCount > 0 ? Text('$alertCount') : null,
                   backgroundColor: AppColors.red,
                   child: const Icon(
                     Icons.notifications_none_rounded,
@@ -252,6 +269,7 @@ class FixedHeaderScrollView extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.alertCount = 0,
+    this.onBack,
     required this.slivers,
   });
 
@@ -259,6 +277,7 @@ class FixedHeaderScrollView extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
   final int alertCount;
+  final VoidCallback? onBack;
   final List<Widget> slivers;
 
   @override
@@ -288,6 +307,7 @@ class FixedHeaderScrollView extends StatelessWidget {
             subtitle: subtitle,
             trailing: trailing,
             alertCount: alertCount,
+            onBack: onBack,
           ),
         ),
       ],

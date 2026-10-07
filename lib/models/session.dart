@@ -17,9 +17,10 @@ class UserSession {
   final UserRole role;
   final String territory;
 
-  String get roleLabel => role == UserRole.salesOfficer
-      ? 'Sales Officer'
-      : 'Territory Officer';
+  String get firstName => name.split(' ').first;
+
+  String get roleLabel =>
+      role == UserRole.salesOfficer ? 'Sales Officer' : 'Territory Officer';
 
   String get initials {
     final parts = name.trim().split(RegExp(r'\s+'));
@@ -28,27 +29,21 @@ class UserSession {
 }
 
 /// Demo credential directory. Replace with the real auth API.
-/// SO-1001 / SO-1042 / TO-2001, password "shelf123".
+/// SO-1001 / TO-2001, password "shelf123".
 abstract final class DemoAuth {
   static const password = 'shelf123';
   static const _users = {
     'SO-1001': UserSession(
       employeeId: 'SO-1001',
-      name: 'Rahim Ahmed',
+      name: 'Arif Rahman',
       role: UserRole.salesOfficer,
-      territory: 'Dhaka North',
-    ),
-    'SO-1042': UserSession(
-      employeeId: 'SO-1042',
-      name: 'Rahim Ahmed',
-      role: UserRole.salesOfficer,
-      territory: 'Dhaka North',
+      territory: 'Gulshan',
     ),
     'TO-2001': UserSession(
       employeeId: 'TO-2001',
-      name: 'Nusrat Jahan',
+      name: 'Nadia Islam',
       role: UserRole.territoryOfficer,
-      territory: 'Dhaka North',
+      territory: 'Gulshan',
     ),
   };
 
@@ -61,92 +56,109 @@ abstract final class DemoAuth {
 /// Holds the signed-in user for the app lifetime.
 final ValueNotifier<UserSession?> currentSession = ValueNotifier(null);
 
+/// Shop ids with a completed visit today.
+final ValueNotifier<Set<String>> visitedToday = ValueNotifier(<String>{});
+
 class Shop {
   const Shop({
     required this.id,
     required this.name,
-    required this.area,
+    required this.address,
     required this.lat,
     required this.lng,
     required this.lastVisit,
-    this.visitedToday = false,
+    this.squareShare,
   });
 
   final String id;
   final String name;
-  final String area;
+  final String address;
   final double lat;
   final double lng;
   final String lastVisit;
-  final bool visitedToday;
+
+  /// Last recorded Square soap share (%), if any.
+  final int? squareShare;
 }
 
+enum DemoLocation { insideShop, outsideShop }
+
 abstract final class DemoData {
-  /// Simulated GPS fix. Swap for a real location stream (e.g. geolocator).
-  static const userLat = 23.79372;
-  static const userLng = 90.40660;
+  static const geofenceMeters = 120.0;
+
+  static const samson = Shop(
+    id: 'S-001',
+    name: 'Samson Center Demo Outlet',
+    address: 'Plot CES(G) 5A, 43 Road 126, Dhaka 1212',
+    lat: 23.78075,
+    lng: 90.41792,
+    lastVisit: 'No visit recorded today',
+    squareShare: 32,
+  );
 
   static const shops = [
+    samson,
     Shop(
-      id: 'S-101',
-      name: 'Shwapno Banani',
-      area: 'Road 11, Banani',
-      lat: 23.79385,
-      lng: 90.40672,
-      lastVisit: '6 days ago',
+      id: 'S-002',
+      name: 'Gulshan Avenue Store',
+      address: 'Gulshan Avenue, Gulshan 1, Dhaka 1212',
+      lat: 23.7925,
+      lng: 90.4160,
+      lastVisit: '3 days ago',
+      squareShare: 44,
     ),
     Shop(
-      id: 'S-102',
-      name: 'Meena Bazar Banani',
-      area: 'Kemal Ataturk Ave',
-      lat: 23.79610,
-      lng: 90.40190,
-      lastVisit: 'Today, 10:15',
-      visitedToday: true,
-    ),
-    Shop(
-      id: 'S-103',
-      name: 'Agora Superstore',
-      area: 'Block C, Banani',
-      lat: 23.79100,
-      lng: 90.41060,
+      id: 'S-003',
+      name: 'Niketan Retail Point',
+      address: 'Road 3, Niketan, Dhaka 1212',
+      lat: 23.7735,
+      lng: 90.4150,
       lastVisit: '2 days ago',
+      squareShare: 38,
     ),
     Shop(
-      id: 'S-104',
-      name: 'Prince Bazar',
-      area: 'Road 27, Gulshan 1',
-      lat: 23.78820,
-      lng: 90.40430,
-      lastVisit: '9 days ago',
+      id: 'S-004',
+      name: 'Police Plaza General Store',
+      address: 'Police Plaza Concord, Gulshan 1, Dhaka 1212',
+      lat: 23.7862,
+      lng: 90.4172,
+      lastVisit: '6 days ago',
+      squareShare: 29,
     ),
     Shop(
-      id: 'S-105',
-      name: 'Nandan Departmental',
-      area: 'Road 4, Banani',
-      lat: 23.79720,
-      lng: 90.41000,
+      id: 'S-005',
+      name: 'Mohakhali Market Outlet',
+      address: 'Mohakhali Bazar, Dhaka 1212',
+      lat: 23.7780,
+      lng: 90.4000,
       lastVisit: 'Never',
     ),
   ];
 
-  static const detectRadiusMeters = 60.0;
+  /// Simulated GPS fixes (about 24 m and 436 m from Samson Center).
+  static (double, double) locationFor(DemoLocation loc) => switch (loc) {
+    DemoLocation.insideShop => (23.780534, 90.41792),
+    DemoLocation.outsideShop => (23.784672, 90.41792),
+  };
 
-  /// Nearest assigned shop within [detectRadiusMeters], else null.
-  static ({Shop shop, double meters})? detect(double lat, double lng) {
-    Shop? best;
-    var bestDist = double.infinity;
+  static Shop? byId(String id) {
     for (final s in shops) {
-      final d = distanceMeters(lat, lng, s.lat, s.lng);
-      if (d < bestDist) {
-        best = s;
-        bestDist = d;
-      }
+      if (s.id == id) return s;
     }
-    if (best == null || bestDist > detectRadiusMeters) return null;
-    return (shop: best, meters: bestDist);
+    return null;
   }
+
+  static double distanceTo(Shop s, double lat, double lng) =>
+      distanceMeters(lat, lng, s.lat, s.lng);
+
+  static bool insideGeofence(Shop s, double lat, double lng) =>
+      distanceTo(s, lat, lng) <= geofenceMeters;
 }
+
+/// "24 m" / "1.2 km".
+String formatDistance(double meters) => meters < 1000
+    ? '${meters.round()} m'
+    : '${(meters / 1000).toStringAsFixed(1)} km';
 
 double distanceMeters(double lat1, double lng1, double lat2, double lng2) {
   const r = 6371000.0;
@@ -155,7 +167,9 @@ double distanceMeters(double lat1, double lng1, double lat2, double lng2) {
   final dLng = rad(lng2 - lng1);
   final a =
       math.pow(math.sin(dLat / 2), 2) +
-      math.cos(rad(lat1)) * math.cos(rad(lat2)) * math.pow(math.sin(dLng / 2), 2);
+      math.cos(rad(lat1)) *
+          math.cos(rad(lat2)) *
+          math.pow(math.sin(dLng / 2), 2);
   return 2 * r * math.asin(math.sqrt(a));
 }
 
