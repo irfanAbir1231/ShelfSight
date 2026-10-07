@@ -7,7 +7,9 @@ import 'audits_screen.dart';
 import 'learn_screen.dart';
 import 'profile_screen.dart';
 import 'sales_home_screen.dart';
-import 'territory_screens.dart';
+import 'team_screens.dart';
+import 'territory_alerts_screen.dart';
+import 'territory_dashboard_screen.dart';
 
 const salesNav = [
   NavItem(Icons.home_outlined, Icons.home_rounded, 'Home'),

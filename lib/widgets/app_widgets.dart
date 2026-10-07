@@ -218,7 +218,9 @@ class SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
-      Text(title, style: Theme.of(context).textTheme.titleLarge),
+      Expanded(
+        child: Text(title, style: Theme.of(context).textTheme.titleLarge),
+      ),
       if (action != null) TextButton(onPressed: onAction, child: Text(action!)),
     ],
   );

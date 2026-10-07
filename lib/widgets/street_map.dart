@@ -20,6 +20,13 @@ abstract final class MapProjection {
   );
 }
 
+class MapOfficer {
+  const MapOfficer(this.initials, this.lat, this.lng);
+  final String initials;
+  final double lat;
+  final double lng;
+}
+
 class StreetMap extends StatefulWidget {
   const StreetMap({
     super.key,
@@ -33,6 +40,7 @@ class StreetMap extends StatefulWidget {
     this.bottomInset = 0,
     this.shopColors = const {},
     this.showUser = true,
+    this.officers = const [],
   });
 
   final List<Shop> shops;
@@ -47,6 +55,9 @@ class StreetMap extends StatefulWidget {
   /// Pin fill overrides by shop id (e.g. Territory share status colors).
   final Map<String, Color> shopColors;
   final bool showUser;
+
+  /// Sales Officers currently on a visit (Territory map only).
+  final List<MapOfficer> officers;
 
   /// Space covered by glass chrome; the camera centers in the remaining area.
   final double topInset;
@@ -199,6 +210,7 @@ class StreetMapState extends State<StreetMap> with TickerProviderStateMixin {
                       for (final shop in widget.shops)
                         if (shop.id == widget.activeShopId)
                           _pin(shop, k, detected: true),
+                      for (final o in widget.officers) _officer(o, k),
                       if (widget.showUser)
                         Positioned(
                           left: user.dx - 40 * k,
@@ -215,6 +227,35 @@ class StreetMapState extends State<StreetMap> with TickerProviderStateMixin {
           ),
         );
       },
+    );
+  }
+
+  Widget _officer(MapOfficer o, double k) {
+    final p = MapProjection.project(o.lat, o.lng);
+    final d = 30.0 * k;
+    return Positioned(
+      left: p.dx + 14 * k,
+      top: p.dy - d - 6 * k,
+      width: d,
+      height: d,
+      child: IgnorePointer(
+        child: Container(
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.emerald,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2.5 * k),
+          ),
+          child: Text(
+            o.initials,
+            style: TextStyle(
+              fontSize: 11 * k,
+              fontWeight: FontWeight.w900,
+              color: AppColors.navy,
+            ),
+          ),
+        ),
+      ),
     );
   }
 

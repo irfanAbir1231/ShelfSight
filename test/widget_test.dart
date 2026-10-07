@@ -70,13 +70,26 @@ void main() {
     expect(find.text('Analysis coming soon'), findsOneWidget);
   });
 
-  testWidgets('territory officer sees dashboard with company shares', (
+  testWidgets('territory officer: dashboard, alert, audit summary', (
     tester,
   ) async {
     await signIn(tester, 'TO-2001');
+    await tester.pump(const Duration(milliseconds: 900));
+    expect(find.text('Good morning, Nadia'), findsOneWidget);
+    expect(find.text('Gulshan Territory'), findsOneWidget);
     expect(find.text('Alerts'), findsWidgets);
     expect(find.text('Team'), findsOneWidget);
+    expect(find.text('42%'), findsOneWidget);
+    expect(find.text('8 points below target'), findsOneWidget);
+
+    await tester.tap(find.text('Competitive shelf update').first);
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('Audit summary'), findsOneWidget);
+    expect(find.text('Below target'), findsOneWidget);
+    await tester.drag(find.text('Company breakdown'), const Offset(0, -300));
+    await tester.pump();
     expect(find.text('Unilever'), findsOneWidget);
-    expect(find.text('Reckitt'), findsOneWidget);
+    expect(find.text('35%'), findsOneWidget);
   });
 }
