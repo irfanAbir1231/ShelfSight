@@ -4,28 +4,34 @@ import 'package:shelfsight/main.dart';
 
 Future<void> signIn(WidgetTester tester, String id) async {
   await tester.pumpWidget(const ShelfSightApp());
-  await tester.pump(const Duration(milliseconds: 1800));
-  await tester.pumpAndSettle();
+  await tester.pump(const Duration(milliseconds: 2300));
+  await tester.pump(const Duration(milliseconds: 600));
   await tester.enterText(find.byType(EditableText).at(0), id);
   await tester.enterText(find.byType(EditableText).at(1), 'shelf123');
   await tester.tap(find.text('Sign in').last);
   await tester.pump(const Duration(milliseconds: 700));
+  await tester.pump(const Duration(milliseconds: 600));
+  expect(find.text('Find your current shop'), findsOneWidget);
+  await tester.tap(find.text('Not now'));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 500));
   await tester.pump(const Duration(milliseconds: 500));
 }
 
 void main() {
   testWidgets('splash opens login and rejects bad credentials', (tester) async {
     await tester.pumpWidget(const ShelfSightApp());
-    expect(find.text('Preparing your workspace'), findsOneWidget);
-    await tester.pump(const Duration(milliseconds: 1800));
-    await tester.pumpAndSettle();
-    expect(find.text('Employee ID'), findsOneWidget);
+    expect(find.text('Retail visibility, measured'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 2300));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.text('SO-1001'), findsOneWidget);
 
     await tester.enterText(find.byType(EditableText).at(0), 'SO-1042');
     await tester.enterText(find.byType(EditableText).at(1), 'wrong');
     await tester.tap(find.text('Sign in').last);
     await tester.pump(const Duration(milliseconds: 700));
-    expect(find.text('Employee ID or password is incorrect.'), findsOneWidget);
+    expect(find.text('Employee ID or password is incorrect'), findsOneWidget);
   });
 
   testWidgets('sales officer sees map home and sales nav', (tester) async {

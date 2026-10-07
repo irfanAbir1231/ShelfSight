@@ -28,10 +28,16 @@ class UserSession {
 }
 
 /// Demo credential directory. Replace with the real auth API.
-/// SO-1042 / TO-2001, password "shelf123".
+/// SO-1001 / SO-1042 / TO-2001, password "shelf123".
 abstract final class DemoAuth {
   static const password = 'shelf123';
   static const _users = {
+    'SO-1001': UserSession(
+      employeeId: 'SO-1001',
+      name: 'Rahim Ahmed',
+      role: UserRole.salesOfficer,
+      territory: 'Dhaka North',
+    ),
     'SO-1042': UserSession(
       employeeId: 'SO-1042',
       name: 'Rahim Ahmed',
