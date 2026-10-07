@@ -6,6 +6,7 @@ import 'package:shelfsight/models/session.dart';
 import 'package:shelfsight/screens/coaching_player_screens.dart';
 import 'package:shelfsight/screens/detection_review_screen.dart';
 import 'package:shelfsight/screens/result_screen.dart';
+import 'package:shelfsight/screens/system_states.dart';
 import 'package:shelfsight/theme/app_theme.dart';
 
 AnalysisResult demoResult() {
@@ -109,5 +110,29 @@ void main() {
     expect(find.bySemanticsLabel('Pause'), findsOneWidget);
     await tester.tap(find.bySemanticsLabel('Pause'));
     await tester.pump();
+  });
+
+  testWidgets('system states: expired, offline, location denied', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(host(const SessionExpiredScreen()));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Your session has expired'), findsOneWidget);
+    expect(find.text('Sign in again'), findsOneWidget);
+    expect(find.textContaining('Exception'), findsNothing);
+
+    await tester.pumpWidget(host(const OfflineStateScreen()));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Retry connection'), findsOneWidget);
+    expect(find.textContaining('upload when'), findsOneWidget);
+
+    await tester.pumpWidget(host(const LocationDeniedScreen()));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('View shops without location'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Location needed'), findsWidgets);
   });
 }

@@ -8,6 +8,7 @@ import 'learn_screen.dart';
 import 'profile_screen.dart';
 import 'sales_home_screen.dart';
 import 'team_screens.dart';
+import 'territory_profile_screen.dart';
 import 'territory_alerts_screen.dart';
 import 'territory_dashboard_screen.dart';
 
@@ -98,7 +99,7 @@ class _AppShellState extends State<AppShell> {
             TerritoryDashboardScreen(session: widget.session),
             const TerritoryAlertsScreen(),
             const TerritoryTeamScreen(),
-            const ProfileScreen(),
+            const TerritoryProfileScreen(),
           ];
     return ValueListenableBuilder<int>(
       valueListenable: shellTab,

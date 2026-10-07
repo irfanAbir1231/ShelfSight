@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/shell_widgets.dart';
 import 'login_screen.dart';
+import 'system_states.dart';
 
 /// Identity block shared by both roles.
 class ProfileIdentityCard extends StatelessWidget {
@@ -298,6 +299,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 18),
+          const SystemStatesDemo(),
           const SizedBox(height: 18),
           const SignOutButton(),
           const SizedBox(height: 12),

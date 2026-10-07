@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../screens/support_screens.dart';
+import '../models/session.dart';
+import '../screens/app_shell.dart' show shellTab;
+import '../screens/notifications_screen.dart';
 import '../theme/app_theme.dart';
 import 'app_widgets.dart';
 
@@ -113,11 +115,18 @@ class ShelfSightHeader extends StatelessWidget {
               if (trailing != null) ...[trailing!, const SizedBox(width: 4)],
               IconButton(
                 tooltip: 'Notifications',
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const NotificationsScreen(),
-                  ),
-                ),
+                onPressed: () {
+                  if (currentSession.value?.role == UserRole.territoryOfficer) {
+                    shellTab.value = 1;
+                    Navigator.of(context).popUntil((r) => r.isFirst);
+                  } else {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const NotificationsScreen(),
+                      ),
+                    );
+                  }
+                },
                 style: IconButton.styleFrom(
                   minimumSize: const Size(48, 48),
                   backgroundColor: AppColors.surfaceAlt,
