@@ -718,7 +718,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       children: [
                         const Text(
                           'Top performer',
-                          style: TextStyle(color: Color(0xFFB6C2D4)),
+                          style: TextStyle(color: AppColors.onNavyMuted),
                         ),
                         Text(
                           top.name,

@@ -144,7 +144,7 @@ class OnboardingProgress extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
-                color: onDark ? const Color(0xFFB6C2D4) : AppColors.inkMuted,
+                color: onDark ? AppColors.onNavyMuted : AppColors.inkMuted,
               ),
             ),
         ],

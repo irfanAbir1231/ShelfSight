@@ -1,13 +1,13 @@
-import 'dart:io';
-
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../models/audit_flow.dart';
+import '../models/demo_result.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/onboarding_widgets.dart';
+import '../widgets/photo_image.dart';
 import 'review_screen.dart';
 
 /// Live camera. The preview starts as soon as the screen opens.
@@ -70,7 +70,9 @@ class _CaptureScreenState extends State<CaptureScreen>
     _initializing = true;
     if (mounted) setState(() => _cameraError = null);
     try {
-      final cameras = await availableCameras();
+      final cameras = await availableCameras().timeout(
+        const Duration(seconds: 6),
+      );
       if (cameras.isEmpty) {
         throw CameraException('noCamera', 'No camera found');
       }
@@ -234,6 +236,10 @@ class _CaptureScreenState extends State<CaptureScreen>
             error: _cameraError,
             onRetry: _initCamera,
             onGallery: _gallery,
+            onDemo: () {
+              _flow.add([demoPhotoPath]);
+              setState(() => _selected = _photos.length - 1);
+            },
           ),
           const IgnorePointer(child: CustomPaint(painter: _GridPainter())),
           Positioned(
@@ -451,11 +457,13 @@ class _Preview extends StatelessWidget {
     required this.error,
     required this.onRetry,
     required this.onGallery,
+    required this.onDemo,
   });
   final CameraController? controller;
   final String? error;
   final VoidCallback onRetry;
   final VoidCallback onGallery;
+  final VoidCallback onDemo;
 
   @override
   Widget build(BuildContext context) {
@@ -515,6 +523,14 @@ class _Preview extends StatelessWidget {
                         minimumSize: const Size(48, 48),
                       ),
                       child: const Text('Choose from gallery'),
+                    ),
+                    TextButton(
+                      onPressed: onDemo,
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        minimumSize: const Size(48, 48),
+                      ),
+                      child: const Text('Use demo shelf photo · testing only'),
                     ),
                   ],
                 ),
@@ -601,10 +617,9 @@ class _Strip extends StatelessWidget {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(11),
-                        child: Image.file(
-                          File(photos[i]),
+                        child: Image(
+                          image: photoProvider(photos[i], cacheWidth: 160),
                           fit: BoxFit.cover,
-                          cacheWidth: 160,
                           errorBuilder: (_, _, _) => const ColoredBox(
                             color: Colors.white12,
                             child: Icon(
@@ -659,10 +674,9 @@ class _GalleryButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(15),
           child: lastPhoto == null
               ? const Icon(Icons.photo_library_outlined, color: Colors.white)
-              : Image.file(
-                  File(lastPhoto!),
+              : Image(
+                  image: photoProvider(lastPhoto!, cacheWidth: 140),
                   fit: BoxFit.cover,
-                  cacheWidth: 140,
                   errorBuilder: (_, _, _) => const Icon(
                     Icons.photo_library_outlined,
                     color: Colors.white,

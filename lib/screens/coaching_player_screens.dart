@@ -363,10 +363,10 @@ class TranscriptScreen extends StatelessWidget {
   final PlaybackController playback;
 
   static const _stageColors = {
-    'Opening': Color(0xFF475569),
+    'Opening': AppColors.slate,
     'Product value': AppColors.emeraldDark,
     'Low-risk proposal': Color(0xFF0B1426),
-    'Closing question': Color(0xFF92580A),
+    'Closing question': AppColors.amberText,
   };
 
   @override

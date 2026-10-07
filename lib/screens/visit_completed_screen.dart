@@ -38,6 +38,11 @@ class _VisitCompletedScreenState extends State<VisitCompletedScreen> {
   @override
   void initState() {
     super.initState();
+    // Update shared notifiers after this frame so listeners can rebuild.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _record());
+  }
+
+  void _record() {
     final shop = DemoData.shops.firstWhere(
       (s) => s.name == widget.storeName,
       orElse: () => DemoData.samson,

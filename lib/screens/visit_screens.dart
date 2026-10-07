@@ -128,7 +128,7 @@ class _VisitOverviewScreenState extends State<VisitOverviewScreen> {
                               '© OpenStreetMap contributors',
                               style: TextStyle(
                                 fontSize: 10,
-                                color: Color(0xFF475569),
+                                color: AppColors.slate,
                               ),
                             ),
                           ),
@@ -493,13 +493,13 @@ class _SoapCard extends StatelessWidget {
                 'Shelf analysis available',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF065F46),
+                  color: AppColors.emeraldDeep,
                 ),
               ),
               SizedBox(height: 2),
               Text(
                 'Last audit: 3 Oct · Square share 32%',
-                style: TextStyle(fontSize: 13.5, color: Color(0xFF065F46)),
+                style: TextStyle(fontSize: 13.5, color: AppColors.emeraldDeep),
               ),
             ],
           ),
@@ -543,7 +543,7 @@ class _InactiveCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 16.5,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF475569),
+                  color: AppColors.slate,
                 ),
               ),
               const SizedBox(height: 2),
@@ -724,7 +724,7 @@ class SoapInstructionsScreen extends StatelessWidget {
                       'competitor soap brands',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF065F46),
+                        color: AppColors.emeraldDeep,
                         height: 1.35,
                       ),
                     ),
@@ -809,7 +809,7 @@ class _Example extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = good ? AppColors.emeraldDark : const Color(0xFF92580A);
+    final color = good ? AppColors.emeraldDark : AppColors.amberText;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

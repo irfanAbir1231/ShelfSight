@@ -121,7 +121,7 @@ class _Recommended extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             '${module.durationLabel} · ${module.summary}',
-            style: const TextStyle(color: Color(0xFFB6C2D4), height: 1.4),
+            style: const TextStyle(color: AppColors.onNavyMuted, height: 1.4),
           ),
           const SizedBox(height: 16),
           Row(

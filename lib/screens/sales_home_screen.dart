@@ -124,11 +124,15 @@ class _SalesHomeScreenState extends State<SalesHomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ValueListenableBuilder<Set<String>>(
+    valueListenable: visitedToday,
+    builder: (context, done, _) => _buildBody(context, done.length),
+  );
+
+  Widget _buildBody(BuildContext context, int visited) {
     final top = ShelfSightHeader.totalHeight(context);
     final navH = FloatingGlassNav.totalHeight(context);
     final screenH = MediaQuery.sizeOf(context).height;
-    final visited = visitedToday.value.length;
     final showSheet = _phase == _Phase.found && !_listMode && !_dismissed;
     return Stack(
       children: [
@@ -224,7 +228,7 @@ class _SalesHomeScreenState extends State<SalesHomeScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 child: Text(
                   '© OpenStreetMap contributors',
-                  style: TextStyle(fontSize: 10.5, color: Color(0xFF475569)),
+                  style: TextStyle(fontSize: 10.5, color: AppColors.slate),
                 ),
               ),
             ),
@@ -443,7 +447,7 @@ class _DetectionSheet extends StatelessWidget {
                       inside
                           ? Icons.my_location_rounded
                           : Icons.near_me_outlined,
-                      color: inside ? AppColors.navy : const Color(0xFF92580A),
+                      color: inside ? AppColors.navy : AppColors.amberText,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -484,7 +488,7 @@ class _DetectionSheet extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                       color: inside
                           ? AppColors.emeraldDark
-                          : const Color(0xFF92580A),
+                          : AppColors.amberText,
                     ),
                   ),
                 ],
@@ -509,7 +513,7 @@ class _DetectionSheet extends StatelessWidget {
                   const StatusPill(
                     label: 'You are outside the shop area',
                     icon: Icons.warning_amber_rounded,
-                    color: Color(0xFF92580A),
+                    color: AppColors.amberText,
                     background: AppColors.amberSoft,
                   ),
                 StatusPill(
@@ -554,7 +558,7 @@ class _DetectionSheet extends StatelessWidget {
                   const Icon(
                     Icons.info_outline_rounded,
                     size: 18,
-                    color: Color(0xFF92580A),
+                    color: AppColors.amberText,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -562,7 +566,7 @@ class _DetectionSheet extends StatelessWidget {
                       'Move within ${DemoData.geofenceMeters.round()} meters of the shop to begin',
                       style: const TextStyle(
                         fontSize: 14,
-                        color: Color(0xFF92580A),
+                        color: AppColors.amberText,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

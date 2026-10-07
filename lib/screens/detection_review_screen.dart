@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../models/analysis_result.dart';
 import '../theme/app_theme.dart';
 import '../widgets/annotated_image.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/photo_image.dart';
 import '../widgets/shell_widgets.dart';
 
 const _slate = Color(0xFF64748B);
@@ -132,7 +131,7 @@ class _DetectionReviewScreenState extends State<DetectionReviewScreen> {
         slivers: [
           SliverToBoxAdapter(
             child: AnnotatedImage(
-              image: path != null ? FileImage(File(path)) : null,
+              image: path != null ? photoProvider(path) : null,
               fallback: const ShelfArtwork(radius: 0),
               boxes: boxes,
               onBoxTap: (id) => setState(() => _selectedId = id),

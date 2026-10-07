@@ -64,7 +64,7 @@ class RecommendationScreen extends StatelessWidget {
                         fontSize: 16,
                         height: 1.45,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF065F46),
+                        color: AppColors.emeraldDeep,
                       ),
                     ),
                   ),

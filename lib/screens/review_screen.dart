@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../models/audit_flow.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/photo_image.dart';
 import '../widgets/shell_widgets.dart';
 import 'analysis_processing_screen.dart';
 import 'capture_screen.dart';
@@ -87,8 +86,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    child: Image.file(
-                      File(photos[_index]),
+                    child: Image(
+                      image: photoProvider(photos[_index]),
                       fit: BoxFit.cover,
                       errorBuilder: (_, _, _) => const ShelfArtwork(radius: 20),
                     ),
@@ -132,10 +131,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(11),
-                        child: Image.file(
-                          File(photos[i]),
+                        child: Image(
+                          image: photoProvider(photos[i], cacheWidth: 180),
                           fit: BoxFit.cover,
-                          cacheWidth: 180,
                           errorBuilder: (_, _, _) =>
                               const ColoredBox(color: AppColors.surfaceAlt),
                         ),
@@ -208,13 +206,13 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   Icon(
                     Icons.info_outline_rounded,
                     size: 18,
-                    color: Color(0xFF92580A),
+                    color: AppColors.amberText,
                   ),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Consider retaking this photo for a more accurate count.',
-                      style: TextStyle(color: Color(0xFF92580A)),
+                      style: TextStyle(color: AppColors.amberText),
                     ),
                   ),
                 ],

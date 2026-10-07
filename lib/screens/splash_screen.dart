@@ -90,7 +90,7 @@ class _SplashScreenState extends State<SplashScreen> {
                         Text(
                           'Retail visibility, measured',
                           style: TextStyle(
-                            color: Color(0xFFB6C2D4),
+                            color: AppColors.onNavyMuted,
                             fontSize: 16,
                             letterSpacing: .2,
                           ),

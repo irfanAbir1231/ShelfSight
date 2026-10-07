@@ -15,7 +15,7 @@ const squareTargetShare = 50.0;
 
 /// Sales Officer result summary. Shows Square data only: competitor company
 /// percentages are never shown on Sales Officer screens.
-class ResultScreen extends StatelessWidget {
+class ResultScreen extends StatefulWidget {
   const ResultScreen({
     super.key,
     required this.storeName,
@@ -27,13 +27,29 @@ class ResultScreen extends StatelessWidget {
   final List<String> imagePaths;
 
   @override
+  State<ResultScreen> createState() => _ResultScreenState();
+}
+
+class _ResultScreenState extends State<ResultScreen> {
+  String get storeName => widget.storeName;
+  AnalysisResult get result => widget.result;
+
+  @override
+  void initState() {
+    super.initState();
+    // Notifiers drive other screens, so update after this frame builds.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ActiveVisit.current?.step.value = 2;
+      AuditFlow.current?.result = result;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final s = result.summary;
     final share = s.squareShare.clamp(0, 100).toDouble();
     final gap = squareTargetShare - share;
     final onTarget = gap <= 0;
-    ActiveVisit.current?.step.value = 2;
-    AuditFlow.current?.result = result;
     return Scaffold(
       backgroundColor: AppColors.canvas,
       body: FixedHeaderScrollView(
@@ -60,7 +76,7 @@ class ResultScreen extends StatelessWidget {
                         : Icons.trending_down_rounded,
                     color: onTarget
                         ? AppColors.emeraldDark
-                        : const Color(0xFF92580A),
+                        : AppColors.amberText,
                     background: onTarget ? AppColors.mint : AppColors.amberSoft,
                   ),
                 ],

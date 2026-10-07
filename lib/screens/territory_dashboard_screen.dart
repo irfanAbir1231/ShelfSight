@@ -14,7 +14,7 @@ import 'territory_map_screen.dart';
 
 enum DashState { loading, ready, noAlerts, noVisits, apiError }
 
-const _amberText = Color(0xFF92580A);
+const _amberText = AppColors.amberText;
 
 class TerritoryDashboardScreen extends StatefulWidget {
   const TerritoryDashboardScreen({super.key, required this.session});
@@ -170,7 +170,7 @@ class _TerritoryDashboardScreenState extends State<TerritoryDashboardScreen> {
             const Text(
               'AVERAGE SQUARE SOAP SHARE',
               style: TextStyle(
-                color: Color(0xFFB6C2D4),
+                color: AppColors.onNavyMuted,
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1,
@@ -197,7 +197,7 @@ class _TerritoryDashboardScreenState extends State<TerritoryDashboardScreen> {
                     child: Text(
                       'Target 50%',
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Color(0xFFB6C2D4)),
+                      style: TextStyle(color: AppColors.onNavyMuted),
                     ),
                   ),
                 ),

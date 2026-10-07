@@ -112,7 +112,7 @@ class _TerritoryMapScreenState extends State<TerritoryMapScreen> {
                   padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   child: Text(
                     '© OpenStreetMap contributors',
-                    style: TextStyle(fontSize: 10.5, color: Color(0xFF475569)),
+                    style: TextStyle(fontSize: 10.5, color: AppColors.slate),
                   ),
                 ),
               ),

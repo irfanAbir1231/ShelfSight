@@ -10,7 +10,7 @@ import 'app_shell.dart';
 import 'login_screen.dart';
 import 'visit_screens.dart';
 
-const _amberText = Color(0xFF92580A);
+const _amberText = AppColors.amberText;
 
 /// Offline: map tiles unavailable, cached shops visible, captures queue.
 /// Does not promise offline maps.
@@ -59,7 +59,7 @@ class _OfflineStateScreenState extends State<OfflineStateScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         height: 1.4,
-                        color: Color(0xFF6B3F06),
+                        color: AppColors.amberDeep,
                       ),
                     ),
                   ),

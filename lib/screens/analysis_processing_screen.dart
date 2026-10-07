@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/analysis_result.dart';
 import '../models/audit_flow.dart';
+import '../models/demo_result.dart';
 import '../services/analysis_api.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_widgets.dart';
@@ -77,17 +78,26 @@ class _AnalysisProcessingScreenState extends State<AnalysisProcessingScreen> {
       if (mounted && run == _run) _fail();
     });
     try {
-      final result = await _api.analyze(
-        _flow.photos.value,
-        onServerReady: () {
-          if (mounted && run == _run) {
-            setState(() {
-              _completed = 1;
-              _active = 1;
-            });
-          }
-        },
-      );
+      void ready() {
+        if (mounted && run == _run) {
+          setState(() {
+            _completed = 1;
+            _active = 1;
+          });
+        }
+      }
+
+      final paths = _flow.photos.value;
+      final AnalysisResult result;
+      if (paths.every(isDemoPhoto)) {
+        // Bundled demo photos: simulate the stages without a server.
+        await Future<void>.delayed(const Duration(milliseconds: 1200));
+        ready();
+        await Future<void>.delayed(const Duration(milliseconds: 2400));
+        result = buildDemoResult(paths);
+      } else {
+        result = await _api.analyze(paths, onServerReady: ready);
+      }
       if (!mounted || run != _run) return;
       _cursor?.cancel();
       _timeout?.cancel();
@@ -243,7 +253,7 @@ class _AnalysisProcessingScreenState extends State<AnalysisProcessingScreen> {
           child: const Icon(
             Icons.hourglass_bottom_rounded,
             size: 56,
-            color: Color(0xFF92580A),
+            color: AppColors.amberText,
           ),
         ),
         const SizedBox(height: 22),

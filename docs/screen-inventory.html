@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShelfSight Screen Inventory</title>
+<style>
+  :root {
+    --navy: #0B1426; --emerald: #36D998; --emerald-dark: #0B8A63; --mint: #D7F9EA;
+    --bg: #F5F8FC; --card: #FFFFFF; --text: #101828; --muted: #64748B; --border: #DCE5EF;
+    --amber: #F59E0B; --amber-soft: #FEF3D6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0B1426; --card: #16233B; --text: #F5F8FC; --muted: #B6C2D4; --border: #26364F; --mint: #12382D; --amber-soft: #3A2C0B; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+  .logo { width: 44px; height: 44px; border-radius: 14px; background: var(--navy); display: grid; place-items: center; color: var(--emerald); font-weight: 800; }
+  h1 { font-size: 24px; letter-spacing: -.4px; margin: 0; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 28px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 14px; }
+  .stat b { display: block; font-size: 26px; letter-spacing: -.5px; }
+  .stat span { color: var(--muted); font-size: 13px; }
+  h2 { font-size: 19px; margin: 32px 0 4px; letter-spacing: -.3px; }
+  h2 small { color: var(--muted); font-weight: 600; font-size: 14px; margin-left: 6px; }
+  h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 18px 0 8px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; }
+  .row { display: grid; grid-template-columns: 34px 1.2fr 1.6fr; gap: 10px; padding: 12px 14px; border-top: 1px solid var(--border); align-items: start; }
+  .row:first-child { border-top: 0; }
+  .n { width: 26px; height: 26px; border-radius: 50%; background: var(--mint); color: var(--emerald-dark); font-weight: 800; font-size: 12px; display: grid; place-items: center; }
+  .name { font-weight: 700; }
+  .meta { color: var(--muted); font-size: 13px; }
+  code { font: 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: color-mix(in srgb, var(--border) 45%, transparent); padding: 1px 6px; border-radius: 6px; }
+  .tag { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--amber-soft); color: #92580A; margin-left: 6px; }
+  .flow { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 14px; font-size: 14px; }
+  .flow p { margin: 6px 0; }
+  .arrow { color: var(--emerald-dark); font-weight: 800; }
+  @media (max-width: 640px) { .row { grid-template-columns: 30px 1fr; } .row > :nth-child(3) { grid-column: 2; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><div class="logo">S</div><div><h1>ShelfSight screen inventory</h1></div></header>
+  <p class="sub">Every screen in the Flutter app, grouped by audience. Flutter project at <code>lib/</code>. Demo logins: <code>SO-1001</code> (Sales Officer, Arif Rahman) and <code>TO-2001</code> (Territory Officer, Nadia Islam), password <code>shelf123</code>.</p>
+
+  <div class="summary">
+    <div class="stat"><b>4</b><span>Common</span></div>
+    <div class="stat"><b>24</b><span>Sales Officer</span></div>
+    <div class="stat"><b>15</b><span>Territory Officer</span></div>
+    <div class="stat"><b>3</b><span>Shared states</span></div>
+    <div class="stat"><b>46</b><span>Total screens and states</span></div>
+  </div>
+
+  <h2>Common <small>4 screens</small></h2>
+  <div class="card">
+    <div class="row"><div class="n">1</div><div><div class="name">Splash</div><div class="meta">No navigation, auto-advances</div></div><div class="meta"><code>splash_screen.dart</code> <span class="arrow">→</span> Login</div></div>
+    <div class="row"><div class="n">2</div><div><div class="name">Employee login</div><div class="meta">ID, password, remember ID, help</div></div><div class="meta"><code>login_screen.dart</code> <span class="arrow">→</span> Location permission</div></div>
+    <div class="row"><div class="n">3</div><div><div class="name">Login error state</div><div class="meta">Inline password error, no modal</div></div><div class="meta"><code>login_screen.dart</code> (same screen, wrong password)</div></div>
+    <div class="row"><div class="n">4</div><div><div class="name">Location permission explanation</div><div class="meta">In-app only, no fake system dialog</div></div><div class="meta"><code>location_permission_screen.dart</code> <span class="arrow">→</span> role home</div></div>
+  </div>
+
+  <h2>Sales Officer <small>24 screens · Home, Visits, Learn, Profile</small></h2>
+  <h3>Home and shop detection (5)</h3>
+  <div class="card">
+    <div class="row"><div class="n">1</div><div><div class="name">Map home (wide overview)</div></div><div class="meta"><code>sales_home_screen.dart</code> · five pins, pulsing user dot, Today progress, recenter</div></div>
+    <div class="row"><div class="n">2</div><div><div class="name">Map zoomed to Samson Center</div></div><div class="meta"><code>sales_home_screen.dart</code> · camera fly-to, enlarged emerald pin, “24 m away”</div></div>
+    <div class="row"><div class="n">3</div><div><div class="name">Detected shop sheet</div></div><div class="meta"><code>sales_home_screen.dart</code> · Start shop visit, View shop details, “This is not my shop”</div></div>
+    <div class="row"><div class="n">4</div><div><div class="name">Assigned shops list</div></div><div class="meta"><code>sales_home_screen.dart</code> · Map/List toggle, search, status chips</div></div>
+    <div class="row"><div class="n">5</div><div><div class="name">Outside geofence</div></div><div class="meta"><code>sales_home_screen.dart</code> · “436 m away”, Start disabled, demo location <span class="tag">testing only</span></div></div>
+  </div>
+  <h3>Visit and category selection (4)</h3>
+  <div class="card">
+    <div class="row"><div class="n">6</div><div><div class="name">Shop visit overview</div></div><div class="meta"><code>visit_screens.dart</code> · timer, progress steps, pause</div></div>
+    <div class="row"><div class="n">7</div><div><div class="name">Product category selection</div></div><div class="meta"><code>visit_screens.dart</code> · Soap active, five coming soon</div></div>
+    <div class="row"><div class="n">8</div><div><div class="name">Coming soon sheet</div></div><div class="meta"><code>visit_screens.dart</code> · Continue with Soap</div></div>
+    <div class="row"><div class="n">9</div><div><div class="name">Soap audit instructions</div></div><div class="meta"><code>visit_screens.dart</code> · good/bad examples, Open camera, gallery</div></div>
+  </div>
+  <h3>Capture and analysis (6)</h3>
+  <div class="card">
+    <div class="row"><div class="n">10</div><div><div class="name">Live camera</div></div><div class="meta"><code>capture_screen.dart</code> · preview starts on open, grid, flash, help</div></div>
+    <div class="row"><div class="n">11</div><div><div class="name">Multiple photos captured</div></div><div class="meta"><code>capture_screen.dart</code> · thumbnail strip, delete, “Review 3 photos”</div></div>
+    <div class="row"><div class="n">12</div><div><div class="name">Photo review</div></div><div class="meta"><code>review_screen.dart</code> · carousel, retake/replace/delete, quality checklist</div></div>
+    <div class="row"><div class="n">13</div><div><div class="name">Analysis in progress</div></div><div class="meta"><code>analysis_processing_screen.dart</code> · checkmarks only after real events</div></div>
+    <div class="row"><div class="n">14</div><div><div class="name">Analysis timeout</div></div><div class="meta"><code>analysis_processing_screen.dart</code> · photos preserved, Retry</div></div>
+    <div class="row"><div class="n">15</div><div><div class="name">Low-quality image result</div></div><div class="meta"><code>low_quality_screen.dart</code> · amber warning, Retake or continue</div></div>
+  </div>
+  <h3>Result flow (4)</h3>
+  <div class="card">
+    <div class="row"><div class="n">16</div><div><div class="name">Result summary</div></div><div class="meta"><code>result_screen.dart</code> · Square share ring, no competitor percentages</div></div>
+    <div class="row"><div class="n">17</div><div><div class="name">Detection review</div></div><div class="meta"><code>detection_review_screen.dart</code> · normalized boxes aligned to the image</div></div>
+    <div class="row"><div class="n">18</div><div><div class="name">Recommendation</div></div><div class="meta"><code>recommendation_screen.dart</code> · talking points, Listen to coaching</div></div>
+    <div class="row"><div class="n">19</div><div><div class="name">Visit completed</div></div><div class="meta"><code>visit_completed_screen.dart</code> · records the visit, Return to home</div></div>
+  </div>
+  <h3>Learning, profile, history (5)</h3>
+  <div class="card">
+    <div class="row"><div class="n">20</div><div><div class="name">Coaching library</div></div><div class="meta"><code>learn_screen.dart</code></div></div>
+    <div class="row"><div class="n">21</div><div><div class="name">Audio player</div></div><div class="meta"><code>coaching_player_screens.dart</code> · no download</div></div>
+    <div class="row"><div class="n">22</div><div><div class="name">Bengali transcript</div></div><div class="meta"><code>coaching_player_screens.dart</code> · four highlighted stages, disclaimer</div></div>
+    <div class="row"><div class="n">23</div><div><div class="name">Sales profile</div></div><div class="meta"><code>profile_screen.dart</code></div></div>
+    <div class="row"><div class="n">24</div><div><div class="name">Visit history</div></div><div class="meta"><code>audits_screen.dart</code> · search, date filter, empty state, summary</div></div>
+  </div>
+
+  <h2>Territory Officer <small>15 screens · Dashboard, Alerts, Team, Profile</small></h2>
+  <h3>Dashboard (4)</h3>
+  <div class="card">
+    <div class="row"><div class="n">1</div><div><div class="name">Territory dashboard</div></div><div class="meta"><code>territory_dashboard_screen.dart</code></div></div>
+    <div class="row"><div class="n">2</div><div><div class="name">Territory map</div></div><div class="meta"><code>territory_map_screen.dart</code> · share-status markers, officers on visit</div></div>
+    <div class="row"><div class="n">3</div><div><div class="name">Priority alerts section</div></div><div class="meta"><code>territory_dashboard_screen.dart</code> · <code>territory_alerts_screen.dart</code> (AlertCard)</div></div>
+    <div class="row"><div class="n">4</div><div><div class="name">Loading, empty and error states</div></div><div class="meta"><code>territory_dashboard_screen.dart</code> · skeleton, no alerts, no visits, API unavailable <span class="tag">demo menu</span></div></div>
+  </div>
+  <h3>Alerts and competitive audit (5)</h3>
+  <div class="card">
+    <div class="row"><div class="n">5</div><div><div class="name">Alerts inbox</div></div><div class="meta"><code>territory_alerts_screen.dart</code> · filters, read state, swipe to mark read</div></div>
+    <div class="row"><div class="n">6</div><div><div class="name">Competitive audit summary</div></div><div class="meta"><code>audit_screens.dart</code> · full company breakdown</div></div>
+    <div class="row"><div class="n">7</div><div><div class="name">Full brand breakdown</div></div><div class="meta"><code>audit_screens.dart</code> · company accordion, confidence</div></div>
+    <div class="row"><div class="n">8</div><div><div class="name">Annotated audit image</div></div><div class="meta"><code>audit_screens.dart</code> · zoom/pan, legend, corrections</div></div>
+    <div class="row"><div class="n">9</div><div><div class="name">Territory action</div></div><div class="meta"><code>audit_screens.dart</code> · follow-up, Mark alert reviewed</div></div>
+  </div>
+  <h3>Team (4)</h3>
+  <div class="card">
+    <div class="row"><div class="n">10</div><div><div class="name">Team overview</div></div><div class="meta"><code>team_screens.dart</code></div></div>
+    <div class="row"><div class="n">11</div><div><div class="name">Sales Officer detail</div></div><div class="meta"><code>team_screens.dart</code></div></div>
+    <div class="row"><div class="n">12</div><div><div class="name">Performance leaderboard</div></div><div class="meta"><code>team_screens.dart</code></div></div>
+    <div class="row"><div class="n">13</div><div><div class="name">Assign coaching</div></div><div class="meta"><code>team_screens.dart</code> · includes success confirmation</div></div>
+  </div>
+  <h3>Profile (2)</h3>
+  <div class="card">
+    <div class="row"><div class="n">14</div><div><div class="name">Territory profile</div></div><div class="meta"><code>territory_profile_screen.dart</code></div></div>
+    <div class="row"><div class="n">15</div><div><div class="name">Notification settings</div></div><div class="meta"><code>territory_profile_screen.dart</code></div></div>
+  </div>
+  <p class="meta">Supporting pages that are not separate briefed screens: Shop details (opened from a map pin), Sales notifications (bell), and Visit summary (opened from Visit history or Visit completed). The Territory bell opens the Alerts tab.</p>
+
+  <h2>Shared states <small>3 screens</small></h2>
+  <div class="card">
+    <div class="row"><div class="n">1</div><div><div class="name">Offline</div></div><div class="meta"><code>system_states.dart</code> · queued captures, retry; no offline-map promise</div></div>
+    <div class="row"><div class="n">2</div><div><div class="name">Location denied</div></div><div class="meta"><code>system_states.dart</code> · Start visit disabled unless demo override <span class="tag">testing only</span></div></div>
+    <div class="row"><div class="n">3</div><div><div class="name">Session expired</div></div><div class="meta"><code>system_states.dart</code> · no token errors, unsent captures kept</div></div>
+  </div>
+  <p class="meta">Reached from Profile → “Demo system states”. The Territory dashboard has its own demo state menu.</p>
+
+  <h2>Prototype paths</h2>
+  <div class="flow">
+    <p><b>Common</b> Splash <span class="arrow">→</span> Login <span class="arrow">→</span> Location permission</p>
+    <p><b>Sales Officer</b> Home map <span class="arrow">→</span> Detected shop <span class="arrow">→</span> Start visit <span class="arrow">→</span> Category selection <span class="arrow">→</span> Soap instructions <span class="arrow">→</span> Camera <span class="arrow">→</span> Review <span class="arrow">→</span> Analysis <span class="arrow">→</span> Result <span class="arrow">→</span> Detection review / Recommendation <span class="arrow">→</span> Coaching player <span class="arrow">→</span> Complete visit <span class="arrow">→</span> Home</p>
+    <p><b>Territory Officer</b> Dashboard <span class="arrow">→</span> Alerts <span class="arrow">→</span> Audit summary <span class="arrow">→</span> Brand breakdown / Annotated image / Territory action</p>
+    <p><b>Territory team</b> Dashboard <span class="arrow">→</span> Team <span class="arrow">→</span> Officer detail <span class="arrow">→</span> Assign coaching</p>
+    <p class="meta">No camera or server? On the camera screen use “Use demo shelf photo” to run the whole Sales path end to end. Automated check: <code>test/prototype_test.dart</code>.</p>
+  </div>
+</div>
+</body>
+</html>

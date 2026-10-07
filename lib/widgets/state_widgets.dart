@@ -76,7 +76,7 @@ class StateMessage extends StatelessWidget {
     final (bg, fg) = switch (tone) {
       StateTone.neutral => (AppColors.surfaceAlt, AppColors.inkMuted),
       StateTone.positive => (AppColors.mint, AppColors.emeraldDark),
-      StateTone.warning => (AppColors.amberSoft, const Color(0xFF92580A)),
+      StateTone.warning => (AppColors.amberSoft, AppColors.amberText),
     };
     return Column(
       children: [

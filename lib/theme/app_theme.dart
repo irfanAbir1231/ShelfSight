@@ -16,6 +16,14 @@ abstract final class AppColors {
   static const ink = Color(0xFF101828);
   static const inkMuted = Color(0xFF64748B);
   static const border = Color(0xFFDCE5EF);
+
+  // Text-safe darker tones for amber, mint and red surfaces (AA contrast).
+  static const amberText = Color(0xFF92580A);
+  static const amberDeep = Color(0xFF6B3F06);
+  static const emeraldDeep = Color(0xFF065F46);
+  static const redText = Color(0xFF9B1C1C);
+  static const onNavyMuted = Color(0xFFB6C2D4);
+  static const slate = Color(0xFF475569);
 }
 
 abstract final class AppTheme {

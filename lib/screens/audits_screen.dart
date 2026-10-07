@@ -165,7 +165,7 @@ class _VisitCard extends StatelessWidget {
                 icon: review
                     ? Icons.visibility_outlined
                     : Icons.check_circle_rounded,
-                color: review ? const Color(0xFF92580A) : AppColors.emeraldDark,
+                color: review ? AppColors.amberText : AppColors.emeraldDark,
                 background: review ? AppColors.amberSoft : AppColors.mint,
               ),
             ],

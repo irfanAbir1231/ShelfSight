@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../models/analysis_result.dart';
 import '../models/audit_flow.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/photo_image.dart';
 import '../widgets/shell_widgets.dart';
 import 'capture_screen.dart';
 import 'result_screen.dart';
@@ -47,7 +46,7 @@ class LowQualityScreen extends StatelessWidget {
                 children: [
                   const Icon(
                     Icons.warning_amber_rounded,
-                    color: Color(0xFF92580A),
+                    color: AppColors.amberText,
                     size: 28,
                   ),
                   const SizedBox(width: 12),
@@ -62,13 +61,13 @@ class LowQualityScreen extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 19,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF6B3F06),
+                            color: AppColors.amberDeep,
                           ),
                         ),
                         const SizedBox(height: 4),
                         const Text(
                           'A clearer photo gives a more accurate shelf count.',
-                          style: TextStyle(color: Color(0xFF6B3F06)),
+                          style: TextStyle(color: AppColors.amberDeep),
                         ),
                       ],
                     ),
@@ -116,7 +115,7 @@ class LowQualityScreen extends StatelessWidget {
                                     const Icon(
                                       Icons.error_outline_rounded,
                                       size: 18,
-                                      color: Color(0xFF92580A),
+                                      color: AppColors.amberText,
                                     ),
                                     const SizedBox(width: 6),
                                     Expanded(
@@ -207,10 +206,9 @@ class LowQualityScreen extends StatelessWidget {
   Widget _thumb(PhotoAnalysis p) {
     final path = p.localPath;
     if (path == null) return const ShelfArtwork(radius: 0);
-    return Image.file(
-      File(path),
+    return Image(
+      image: photoProvider(path, cacheWidth: 240),
       fit: BoxFit.cover,
-      cacheWidth: 240,
       errorBuilder: (_, _, _) => const ShelfArtwork(radius: 0),
     );
   }

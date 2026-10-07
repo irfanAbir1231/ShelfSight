@@ -10,7 +10,7 @@ import '../widgets/shell_widgets.dart';
 import 'app_shell.dart';
 import 'team_screens.dart';
 
-const _amberText = Color(0xFF92580A);
+const _amberText = AppColors.amberText;
 
 /// Territory screen 2: full competitive audit summary.
 class AuditSummaryScreen extends StatelessWidget {
@@ -550,9 +550,11 @@ class _AnnotatedAuditScreenState extends State<AnnotatedAuditScreen> {
               children: [
                 Icon(Icons.pinch_outlined, size: 18, color: AppColors.inkMuted),
                 SizedBox(width: 6),
-                Text(
-                  'Pinch to zoom, drag to pan, tap a box',
-                  style: TextStyle(fontSize: 13),
+                Flexible(
+                  child: Text(
+                    'Pinch to zoom, drag to pan, tap a box',
+                    style: TextStyle(fontSize: 13),
+                  ),
                 ),
               ],
             ),
@@ -758,7 +760,7 @@ class _TerritoryActionScreenState extends State<TerritoryActionScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         height: 1.4,
-                        color: Color(0xFF6B3F06),
+                        color: AppColors.amberDeep,
                       ),
                     ),
                   ),
