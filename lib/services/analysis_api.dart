@@ -24,7 +24,10 @@ class AnalysisApi {
 
   final http.Client _client;
 
-  Future<AnalysisResult> analyze(List<String> imagePaths) async {
+  Future<AnalysisResult> analyze(
+    List<String> imagePaths, {
+    void Function()? onServerReady,
+  }) async {
     if (imagePaths.isEmpty) {
       throw const AnalysisApiException('At least one shelf photo is required.');
     }
@@ -40,6 +43,8 @@ class AnalysisApi {
           'AI service is unavailable (${health.statusCode}). Please retry.',
         );
       }
+
+      onServerReady?.call();
 
       final request = http.MultipartRequest(
         'POST',

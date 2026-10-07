@@ -10,7 +10,7 @@ class ResultScreen extends StatefulWidget {
   const ResultScreen({
     super.key,
     required this.storeName,
-    required this.imagePaths,
+    this.imagePaths = const [],
     required this.result,
   });
   final String storeName;

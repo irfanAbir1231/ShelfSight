@@ -270,6 +270,7 @@ class FixedHeaderScrollView extends StatelessWidget {
     this.trailing,
     this.alertCount = 0,
     this.onBack,
+    this.showNavInset = true,
     required this.slivers,
   });
 
@@ -278,6 +279,7 @@ class FixedHeaderScrollView extends StatelessWidget {
   final Widget? trailing;
   final int alertCount;
   final VoidCallback? onBack;
+  final bool showNavInset;
   final List<Widget> slivers;
 
   @override
@@ -294,7 +296,11 @@ class FixedHeaderScrollView extends StatelessWidget {
             ),
             ...slivers,
             SliverToBoxAdapter(
-              child: SizedBox(height: FloatingGlassNav.totalHeight(context) + 12),
+              child: SizedBox(
+                height: showNavInset
+                    ? FloatingGlassNav.totalHeight(context) + 12
+                    : 24 + MediaQuery.paddingOf(context).bottom,
+              ),
             ),
           ],
         ),

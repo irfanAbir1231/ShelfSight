@@ -1,19 +1,22 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/analysis_result.dart';
+import '../models/audit_flow.dart';
 import '../services/analysis_api.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/shell_widgets.dart';
+import 'low_quality_screen.dart';
 import 'result_screen.dart';
 
+enum _Mode { running, failed }
+
+/// Analysis in progress (screen 4) and its timeout state (screen 5).
 class AnalysisProcessingScreen extends StatefulWidget {
-  const AnalysisProcessingScreen({
-    super.key,
-    required this.storeName,
-    required this.imagePaths,
-  });
+  const AnalysisProcessingScreen({super.key, required this.storeName});
   final String storeName;
-  final List<String> imagePaths;
 
   @override
   State<AnalysisProcessingScreen> createState() =>
@@ -21,249 +24,347 @@ class AnalysisProcessingScreen extends StatefulWidget {
 }
 
 class _AnalysisProcessingScreenState extends State<AnalysisProcessingScreen> {
-  final AnalysisApi _api = AnalysisApi();
-  AnalysisResult? _result;
-  String? _error;
-  int _activeStep = 0;
-
-  static const _steps = [
-    (
-      'Uploading photos',
-      'Sending full-quality shelf images',
-      Icons.cloud_upload_outlined,
-    ),
-    (
-      'Detecting products',
-      'Finding visible product facings',
-      Icons.center_focus_strong_rounded,
-    ),
-    (
-      'Identifying Square',
-      'Checking Square logo evidence',
-      Icons.auto_awesome_rounded,
-    ),
-    (
-      'Calculating share',
-      'Building the final audit result',
-      Icons.donut_large_rounded,
-    ),
+  static const _stages = [
+    ('Uploading photos', Icons.cloud_upload_outlined),
+    ('Detecting soap products', Icons.center_focus_strong_rounded),
+    ('Identifying Square products', Icons.auto_awesome_rounded),
+    ('Calculating shelf share', Icons.donut_large_rounded),
   ];
+
+  /// After this long without a result we show the friendly timeout state.
+  static const _softTimeout = Duration(seconds: 150);
+
+  final _api = AnalysisApi();
+  late final AuditFlow _flow = AuditFlow.forShop(widget.storeName);
+  _Mode _mode = _Mode.running;
+  int _completed = 0; // stages with a real completion signal
+  int _active = 0;
+  int _run = 0; // generation counter; stale runs are ignored
+  Timer? _cursor;
+  Timer? _timeout;
 
   @override
   void initState() {
     super.initState();
-    _startAnalysis();
+    _start();
   }
 
-  Future<void> _startAnalysis() async {
+  @override
+  void dispose() {
+    _run++;
+    _cursor?.cancel();
+    _timeout?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _start() async {
+    final run = ++_run;
     setState(() {
-      _result = null;
-      _error = null;
-      _activeStep = 0;
+      _mode = _Mode.running;
+      _completed = 0;
+      _active = 0;
+    });
+    _cursor?.cancel();
+    _timeout?.cancel();
+    // The active stage cursor only shows activity; checkmarks are set by
+    // real events (server reachable, response received).
+    _cursor = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (mounted && run == _run && _completed >= 1 && _active < 3) {
+        setState(() => _active++);
+      }
+    });
+    _timeout = Timer(_softTimeout, () {
+      if (mounted && run == _run) _fail();
     });
     try {
-      final future = _api.analyze(widget.imagePaths);
-      for (var step = 1; step < _steps.length; step++) {
-        await Future<void>.delayed(const Duration(milliseconds: 650));
-        if (!mounted) return;
-        setState(() => _activeStep = step);
-      }
-      final result = await future;
-      if (!mounted) return;
+      final result = await _api.analyze(
+        _flow.photos.value,
+        onServerReady: () {
+          if (mounted && run == _run) {
+            setState(() {
+              _completed = 1;
+              _active = 1;
+            });
+          }
+        },
+      );
+      if (!mounted || run != _run) return;
+      _cursor?.cancel();
+      _timeout?.cancel();
       setState(() {
-        _result = result;
-        _activeStep = _steps.length;
+        _completed = 4;
+        _active = 4;
       });
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _error = error.toString());
+      final withPaths = result.withLocalPaths(_flow.photos.value);
+      _flow.result = withPaths;
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      if (mounted && run == _run) _finish(withPaths);
+    } on AnalysisApiException {
+      if (mounted && run == _run) _fail();
+    } catch (_) {
+      if (mounted && run == _run) _fail();
     }
+  }
+
+  void _fail() {
+    _cursor?.cancel();
+    _timeout?.cancel();
+    _run++; // ignore any late result; photos stay in the flow
+    setState(() => _mode = _Mode.failed);
+  }
+
+  void _finish(AnalysisResult result) {
+    final bad = result.lowQualityIndexes;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => bad.isEmpty
+            ? ResultScreen(storeName: widget.storeName, result: result)
+            : LowQualityScreen(storeName: widget.storeName, result: result),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final done = _result != null;
-    final failed = _error != null;
+    final failed = _mode == _Mode.failed;
     return Scaffold(
-      appBar: AppBar(title: const Text('Analyzing shelf')),
-      body: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-          child: Column(
+      backgroundColor: AppColors.canvas,
+      body: FixedHeaderScrollView(
+        title: failed ? 'Analysis paused' : 'Analyzing Soap shelf',
+        subtitle: widget.storeName,
+        showNavInset: false,
+        onBack: () => Navigator.of(context).pop(),
+        slivers: [
+          pagePadding([
+            if (failed) _timeoutBody(context) else _progressBody(context),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _progressBody(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        SizedBox(
+          width: 150,
+          height: 150,
+          child: Stack(
+            alignment: Alignment.center,
             children: [
-              const Spacer(),
+              const SizedBox(
+                width: 150,
+                height: 150,
+                child: CircularProgressIndicator(
+                  strokeWidth: 8,
+                  strokeCap: StrokeCap.round,
+                  color: AppColors.emerald,
+                  backgroundColor: AppColors.border,
+                ),
+              ),
               Container(
-                width: 116,
-                height: 116,
-                decoration: BoxDecoration(
-                  color: done
-                      ? AppColors.mint
-                      : failed
-                      ? const Color(0xFFFEE2E2)
-                      : AppColors.navy,
+                width: 96,
+                height: 96,
+                decoration: const BoxDecoration(
+                  color: AppColors.navy,
                   shape: BoxShape.circle,
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x22111827),
-                      blurRadius: 30,
-                      offset: Offset(0, 14),
-                    ),
-                  ],
                 ),
-                child: done
-                    ? const Icon(
-                        Icons.check_rounded,
-                        size: 58,
-                        color: AppColors.emeraldDark,
-                      )
-                    : failed
-                    ? const Icon(
-                        Icons.cloud_off_rounded,
-                        size: 50,
-                        color: AppColors.red,
-                      )
-                    : const Padding(
-                        padding: EdgeInsets.all(24),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 6,
-                          color: AppColors.emerald,
-                          backgroundColor: Color(0xFF334155),
-                        ),
-                      ),
-              ),
-              const SizedBox(height: 28),
-              Text(
-                done
-                    ? 'Analysis complete'
-                    : failed
-                    ? 'Analysis could not finish'
-                    : 'AI is reviewing your shelf',
-                style: Theme.of(context).textTheme.headlineMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                failed
-                    ? _error!
-                    : '${widget.imagePaths.length} photos from ${widget.storeName}',
-                style: TextStyle(
-                  color: failed ? AppColors.red : AppColors.inkMuted,
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: AppColors.emerald,
+                  size: 40,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 28),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    children: List.generate(_steps.length, (index) {
-                      final step = _steps[index];
-                      final complete = done || index < _activeStep;
-                      final active = !done && !failed && index == _activeStep;
-                      return Padding(
-                        padding: EdgeInsets.only(
-                          bottom: index == _steps.length - 1 ? 0 : 18,
-                        ),
-                        child: Row(
-                          children: [
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 250),
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: complete
-                                    ? AppColors.mint
-                                    : active
-                                    ? AppColors.navy
-                                    : AppColors.surfaceAlt,
-                                borderRadius: BorderRadius.circular(13),
-                              ),
-                              child: Icon(
-                                complete ? Icons.check_rounded : step.$3,
-                                size: 19,
-                                color: complete
-                                    ? AppColors.emeraldDark
-                                    : active
-                                    ? Colors.white
-                                    : AppColors.inkMuted,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    step.$1,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      color: active || complete
-                                          ? AppColors.navy
-                                          : AppColors.inkMuted,
-                                    ),
-                                  ),
-                                  Text(
-                                    step.$2,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.inkMuted,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (active)
-                              const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: AppColors.emerald,
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-              ),
-              const Spacer(),
-              if (failed)
-                PrimaryButton(
-                  label: 'Retry analysis',
-                  icon: Icons.refresh_rounded,
-                  onPressed: _startAnalysis,
-                )
-              else
-                PrimaryButton(
-                  label: done ? 'View results' : 'Analysis in progress',
-                  icon: done
-                      ? Icons.arrow_forward_rounded
-                      : Icons.hourglass_top_rounded,
-                  onPressed: done
-                      ? () => Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (_) => ResultScreen(
-                              storeName: widget.storeName,
-                              imagePaths: widget.imagePaths,
-                              result: _result!,
-                            ),
-                          ),
-                        )
-                      : null,
-                ),
-              const SizedBox(height: 8),
-              Text(
-                failed
-                    ? 'Server: ${AnalysisApi.baseUrl}'
-                    : 'Keep this screen open until analysis completes',
-                style: const TextStyle(fontSize: 11, color: AppColors.inkMuted),
               ),
             ],
           ),
         ),
+        const SizedBox(height: 22),
+        SurfaceCard(
+          child: Column(
+            children: [
+              for (var i = 0; i < _stages.length; i++)
+                _StageRow(
+                  label: _stages[i].$1,
+                  icon: _stages[i].$2,
+                  done: i < _completed,
+                  active: i == _active && i >= _completed && _completed < 4,
+                  last: i == _stages.length - 1,
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.info_outline_rounded, size: 18, color: AppColors.inkMuted),
+            SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'The server may need a moment to wake up',
+                style: TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 22),
+        const PrimaryButton(
+          label: 'Analysis in progress',
+          icon: Icons.hourglass_top_rounded,
+          onPressed: null,
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          style: TextButton.styleFrom(
+            minimumSize: const Size(double.infinity, 48),
+            foregroundColor: AppColors.inkMuted,
+          ),
+          child: const Text(
+            'Cancel and return to photos',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _timeoutBody(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 12),
+        Container(
+          width: 120,
+          height: 120,
+          decoration: const BoxDecoration(
+            color: AppColors.amberSoft,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.hourglass_bottom_rounded,
+            size: 56,
+            color: Color(0xFF92580A),
+          ),
+        ),
+        const SizedBox(height: 22),
+        const Text(
+          'Analysis is taking longer than expected',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 22,
+            height: 1.25,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -.4,
+            color: AppColors.ink,
+          ),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'The analysis service may still be waking up. Your photos are safe.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 15.5, height: 1.45),
+        ),
+        const SizedBox(height: 14),
+        StatusPill(
+          label: '${_flow.photos.value.length} photos saved on this phone',
+          icon: Icons.lock_outline_rounded,
+        ),
+        const SizedBox(height: 28),
+        PrimaryButton(
+          label: 'Retry analysis',
+          icon: Icons.refresh_rounded,
+          onPressed: _start,
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 52,
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.navy,
+              side: const BorderSide(color: AppColors.navy, width: 1.5),
+              shape: const StadiumBorder(),
+            ),
+            child: const Text(
+              'Return to review',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StageRow extends StatelessWidget {
+  const _StageRow({
+    required this.label,
+    required this.icon,
+    required this.done,
+    required this.active,
+    required this.last,
+  });
+  final String label;
+  final IconData icon;
+  final bool done;
+  final bool active;
+  final bool last;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: last ? 0 : 14),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 32,
+            height: 32,
+            child: done
+                ? const DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.emeraldDark,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.check_rounded, size: 19, color: Colors.white),
+                  )
+                : active
+                ? const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      color: AppColors.emeraldDark,
+                    ),
+                  )
+                : DecoratedBox(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.border, width: 2),
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 15.5,
+                fontWeight: active || done ? FontWeight.w800 : FontWeight.w600,
+                color: done || active ? AppColors.ink : AppColors.inkMuted,
+              ),
+            ),
+          ),
+          if (done)
+            const Text(
+              'Done',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppColors.emeraldDark,
+              ),
+            )
+          else if (active)
+            const Text('Working…', style: TextStyle(fontWeight: FontWeight.w600)),
+        ],
       ),
     );
   }

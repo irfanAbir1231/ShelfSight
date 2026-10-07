@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../models/audit_flow.dart';
 import '../models/session.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_widgets.dart';
@@ -56,6 +57,7 @@ class _VisitOverviewScreenState extends State<VisitOverviewScreen> {
     _visit = ActiveVisit.current?.shop.id == widget.shop.id
         ? ActiveVisit.current!
         : (ActiveVisit.current = ActiveVisit(widget.shop));
+    if (ActiveVisit.current!.step.value == 0) AuditFlow.reset();
     _elapsed = DateTime.now().difference(_visit.startedAt);
     _tick = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!_paused && mounted) {
@@ -651,13 +653,9 @@ class SoapInstructionsScreen extends StatelessWidget {
     );
     if (photos.isEmpty || !context.mounted) return;
     ActiveVisit.current?.step.value = 1;
+    AuditFlow.forShop(shop.name).add(photos.map((p) => p.path));
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ReviewScreen(
-          storeName: shop.name,
-          imagePaths: photos.map((p) => p.path).toList(),
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => ReviewScreen(storeName: shop.name)),
     );
   }
 

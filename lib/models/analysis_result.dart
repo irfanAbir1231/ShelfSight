@@ -55,8 +55,11 @@ class PhotoAnalysis {
     required this.annotatedImage,
     required this.quality,
     required this.detections,
+    this.localPath,
   });
 
+  /// Path of the original photo on this phone (set after analysis).
+  final String? localPath;
   final String filename;
   final String annotatedImage;
   final ImageQuality quality;
@@ -121,5 +124,68 @@ class NormalizedBox {
     y: (json['y'] as num? ?? 0).toDouble(),
     width: (json['width'] as num? ?? 0).toDouble(),
     height: (json['height'] as num? ?? 0).toDouble(),
+  );
+}
+
+extension AnalysisResultFilter on AnalysisResult {
+  /// Photos whose quality check failed.
+  List<int> get lowQualityIndexes => [
+    for (var i = 0; i < photos.length; i++)
+      if (!photos[i].quality.acceptable) i,
+  ];
+
+  /// Result recomputed from the photos that are kept.
+  AnalysisResult keeping(Set<int> keep) {
+    final kept = [
+      for (var i = 0; i < photos.length; i++)
+        if (keep.contains(i)) photos[i],
+    ];
+    var square = 0, other = 0, uncertain = 0;
+    for (final p in kept) {
+      for (final d in p.detections) {
+        switch (d.label) {
+          case 'square':
+            square++;
+          case 'other':
+            other++;
+          default:
+            uncertain++;
+        }
+      }
+    }
+    final total = square + other + uncertain;
+    return AnalysisResult(
+      auditId: auditId,
+      summary: AnalysisSummary(
+        totalFacings: total,
+        squareFacings: square,
+        otherFacings: other,
+        uncertainFacings: uncertain,
+        squareShare: total == 0 ? 0 : square / total * 100,
+      ),
+      photos: kept,
+      warnings: warnings,
+      engine: engine,
+    );
+  }
+}
+
+extension AnalysisResultPaths on AnalysisResult {
+  /// Attaches the on-device photo paths, in upload order.
+  AnalysisResult withLocalPaths(List<String> paths) => AnalysisResult(
+    auditId: auditId,
+    summary: summary,
+    photos: [
+      for (var i = 0; i < photos.length; i++)
+        PhotoAnalysis(
+          filename: photos[i].filename,
+          annotatedImage: photos[i].annotatedImage,
+          quality: photos[i].quality,
+          detections: photos[i].detections,
+          localPath: i < paths.length ? paths[i] : null,
+        ),
+    ],
+    warnings: warnings,
+    engine: engine,
   );
 }
