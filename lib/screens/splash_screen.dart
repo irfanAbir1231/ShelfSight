@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
-import 'dashboard_screen.dart';
+import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -30,7 +30,7 @@ class _SplashScreenState extends State<SplashScreen> {
       PageRouteBuilder<void>(
         transitionDuration: const Duration(milliseconds: 420),
         pageBuilder: (_, animation, secondaryAnimation) =>
-            const DashboardScreen(),
+            const LoginScreen(),
         transitionsBuilder: (_, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },

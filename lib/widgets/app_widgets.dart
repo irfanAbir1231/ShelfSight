@@ -40,58 +40,6 @@ class GlassSurface extends StatelessWidget {
   }
 }
 
-class FixedGlassHeader extends StatelessWidget {
-  const FixedGlassHeader({super.key, required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassSurface(
-      borderRadius: BorderRadius.zero,
-      color: AppColors.headerSurface.withValues(alpha: .78),
-      borderColor: Colors.white.withValues(alpha: .7),
-      blur: 22,
-      child: SizedBox(
-        height: 76,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: child,
-        ),
-      ),
-    );
-  }
-}
-
-class FixedHeaderScrollView extends StatelessWidget {
-  const FixedHeaderScrollView({
-    super.key,
-    required this.header,
-    required this.slivers,
-  });
-
-  final Widget header;
-  final List<Widget> slivers;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        CustomScrollView(
-          physics: const ClampingScrollPhysics(),
-          slivers: slivers,
-        ),
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: FixedGlassHeader(child: header),
-        ),
-      ],
-    );
-  }
-}
-
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({
     super.key,

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../models/session.dart';
 import '../theme/app_theme.dart';
+import 'login_screen.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/shell_widgets.dart';
 import 'support_screens.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -19,19 +22,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return FixedHeaderScrollView(
-      header: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text('Profile', style: Theme.of(context).textTheme.headlineMedium),
-          IconButton.filledTonal(
-            onPressed: () {},
-            icon: const Icon(Icons.edit_outlined),
-          ),
-        ],
-      ),
+      title: 'Profile',
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 100, 20, 116),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           sliver: SliverList.list(
             children: [
               Card(
@@ -49,8 +43,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               borderRadius: BorderRadius.circular(22),
                             ),
                             alignment: Alignment.center,
-                            child: const Text(
-                              'RA',
+                            child: Text(
+                              currentSession.value?.initials ?? 'RA',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 23,
@@ -59,12 +53,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           const SizedBox(width: 15),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Rahim Ahmed',
+                                  currentSession.value?.name ?? 'Rahim Ahmed',
                                   style: TextStyle(
                                     fontSize: 19,
                                     fontWeight: FontWeight.w900,
@@ -72,12 +66,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  'Field Store Auditor',
+                                  currentSession.value?.roleLabel ?? 'Sales Officer',
                                   style: TextStyle(color: AppColors.inkMuted),
                                 ),
                                 SizedBox(height: 8),
                                 StatusPill(
-                                  label: 'Dhaka North',
+                                  label: currentSession.value?.territory ?? 'Dhaka North',
                                   icon: Icons.location_on_outlined,
                                 ),
                               ],
@@ -250,6 +244,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 18),
+              SizedBox(
+                height: 56,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    currentSession.value = null;
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (_) => false,
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.red,
+                    side: const BorderSide(color: AppColors.red),
+                    shape: const StadiumBorder(),
+                  ),
+                  icon: const Icon(Icons.logout_rounded),
+                  label: const Text(
+                    'Sign out',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
               const Center(
                 child: Text(
                   'ShelfSight 1.0.0 • Field build',

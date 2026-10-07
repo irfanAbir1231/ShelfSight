@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 
 abstract final class AppColors {
-  static const navy = Color(0xFF111827);
-  static const navySoft = Color(0xFF1F2937);
-  static const emerald = Color(0xFF10B981);
-  static const emeraldDark = Color(0xFF047857);
-  static const mint = Color(0xFFD1FAE5);
+  static const navy = Color(0xFF0B1426);
+  static const navySoft = Color(0xFF16233B);
+  static const emerald = Color(0xFF36D998);
+  static const emeraldDark = Color(0xFF0B8A63);
+  static const mint = Color(0xFFD7F9EA);
   static const amber = Color(0xFFF59E0B);
-  static const red = Color(0xFFEF4444);
-  static const canvas = Color(0xFFF7F9FC);
-  static const headerSurface = Color(0xFFEAF0F7);
-  static const surfaceAlt = Color(0xFFF1F5F9);
+  static const red = Color(0xFFF04444);
+  static const redSoft = Color(0xFFFEE9E9);
+  static const amberSoft = Color(0xFFFEF3D6);
+  static const canvas = Color(0xFFF5F8FC);
+  static const headerSurface = Color(0xFFF5F8FC);
+  static const surfaceAlt = Color(0xFFEBF0F6);
+  static const ink = Color(0xFF101828);
   static const inkMuted = Color(0xFF64748B);
-  static const border = Color(0xFFE2E8F0);
+  static const border = Color(0xFFDCE5EF);
 }
 
 abstract final class AppTheme {
@@ -29,17 +32,18 @@ abstract final class AppTheme {
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: AppColors.canvas,
-      fontFamily: 'Arial',
+      fontFamily: 'Inter',
+      fontFamilyFallback: const ['Roboto', 'Segoe UI', 'Arial'],
       textTheme: const TextTheme(
         displaySmall: TextStyle(
-          fontSize: 32,
+          fontSize: 28,
           height: 1.15,
           fontWeight: FontWeight.w800,
           letterSpacing: -1.1,
-          color: AppColors.navy,
+          color: AppColors.ink,
         ),
         headlineMedium: TextStyle(
-          fontSize: 24,
+          fontSize: 22,
           height: 1.2,
           fontWeight: FontWeight.w800,
           letterSpacing: -.6,
@@ -58,7 +62,7 @@ abstract final class AppTheme {
           fontWeight: FontWeight.w700,
           color: AppColors.navy,
         ),
-        bodyLarge: TextStyle(fontSize: 16, height: 1.45, color: AppColors.navy),
+        bodyLarge: TextStyle(fontSize: 16, height: 1.45, color: AppColors.ink),
         bodyMedium: TextStyle(
           fontSize: 14,
           height: 1.4,
@@ -108,29 +112,38 @@ abstract final class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(24)),
+          borderRadius: BorderRadius.all(Radius.circular(20)),
           side: BorderSide(color: AppColors.border),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceAlt,
+        fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 16,
         ),
-        hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+        hintStyle: const TextStyle(color: AppColors.inkMuted),
+        labelStyle: const TextStyle(color: AppColors.inkMuted),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.red, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.red, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.emerald, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.emeraldDark, width: 2),
         ),
       ),
     );

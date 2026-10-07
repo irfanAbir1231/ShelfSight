@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/shell_widgets.dart';
 import 'support_screens.dart';
 
 class AuditsScreen extends StatefulWidget {
@@ -18,34 +19,11 @@ class _AuditsScreenState extends State<AuditsScreen> {
   @override
   Widget build(BuildContext context) {
     return FixedHeaderScrollView(
-      header: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Audits', style: Theme.of(context).textTheme.headlineMedium),
-              const SizedBox(height: 3),
-              const Text(
-                'Track every shelf visit',
-                style: TextStyle(
-                  color: AppColors.inkMuted,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
-          ),
-          IconButton.filledTonal(
-            onPressed: () {},
-            icon: const Icon(Icons.file_download_outlined),
-          ),
-        ],
-      ),
+      title: 'Visits',
+      subtitle: 'Your shop visit history',
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 100, 20, 116),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           sliver: SliverList.list(
             children: [
               const Row(
